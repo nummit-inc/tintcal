@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name:      TintCal
-Plugin URI:       https://nummit.jp
+Plugin URI:       https://tintcal.com
 Description:      「定休日」や「イベント日」といった予定を自由に設定し、日付をカラフルに色分け。日本の祝日にも対応した、見た目がわかりやすいオリジナルカレンダーを作成できます。
 Version:          2.1
 Requires at least: 5.8
