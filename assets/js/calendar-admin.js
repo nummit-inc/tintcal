@@ -6,7 +6,7 @@
 window.saveHolidaysToLocal = saveHolidaysToLocal;
 
 var currentYear, currentMonth;
-let holidayCache = {};
+// holidayCache のグローバル宣言は削除
 const isAdminScreen =
   window.location.href.includes("page=jcalendar-settings") ||
   window.location.href.includes("page=jcalendar-preference") ||

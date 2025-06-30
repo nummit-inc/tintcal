@@ -1,7 +1,6 @@
 // assets/js/calendar-front.js
 
-// 祝日データはページ全体で共有すれば良いので、グローバルスコープにキャッシュ
-const holidayCache = {};
+// 祝日データは JCalendar クラスのプロパティとして管理するため、グローバルな宣言は不要
 
 
 function saveHolidaysToLocal(year, holidays) {
@@ -280,11 +279,20 @@ class JCalendar {
         this.legendContainer.style.flexWrap = 'wrap';
         this.legendContainer.innerHTML = '';
 
-        const visibleCategories = (settings.categories || [])
-            .filter(cat => settings.visibleCategories.includes(cat.slug))
-            .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+        // 凡例に表示するカテゴリを決定
+        let categoriesForLegend = (settings.categories || []); // まずは全てのカテゴリを取得
 
-        visibleCategories.forEach(cat => {
+        // 設定で表示が許可されたカテゴリのスラグ配列が存在し、かつ空でない場合のみフィルタリング
+        if (Array.isArray(settings.visibleCategories) && settings.visibleCategories.length > 0) {
+            categoriesForLegend = categoriesForLegend.filter(cat => settings.visibleCategories.includes(cat.slug));
+        }
+        // その他の条件（例: cat.visible === false）でフィルタリングが必要ならここに追加
+        categoriesForLegend = categoriesForLegend.filter(cat => cat.visible !== false);
+
+        // 順番でソート
+        categoriesForLegend.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+
+        categoriesForLegend.forEach(cat => { // ★ ここを修正
             const item = document.createElement('div');
             // CSSクラスではなく、直接スタイルを指定する
             item.style.display = 'inline-flex';

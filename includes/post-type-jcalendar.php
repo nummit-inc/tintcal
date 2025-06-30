@@ -38,10 +38,10 @@ add_action('init', function () {
         'read_private_posts'     => 'read_private_jcalendars',
         'create_posts'           => 'edit_jcalendars', // 新規作成の権限
         'delete_posts'           => 'delete_jcalendars',
-        'delete_private_posts'   => 'delete_private_jcalendars',
+        // 'delete_private_posts'   => 'delete_private_jcalendars',
         'delete_published_posts' => 'delete_published_jcalendars',
         'delete_others_posts'    => 'delete_others_jcalendars',
-        'edit_private_posts'     => 'edit_private_jcalendars',
+        // 'edit_private_posts'     => 'edit_private_jcalendars',
         'edit_published_posts'   => 'edit_published_jcalendars',
     ],
     // ▲▲▲ ここまで追加 ▲▲▲
@@ -56,13 +56,25 @@ add_action('init', function () {
   ];
 
   foreach ($meta_fields as $meta_key) {
-    register_post_meta('jcalendar', $meta_key, [
-        'show_in_rest' => true,
-        'single' => true,
-        'type' => ($meta_key === '_jcalendar_visible_categories') ? 'array' : 'string',
-        'sanitize_callback' => 'sanitize_text_field'
-    ]);
-  }
+    $meta_args = [
+       'show_in_rest' => true,
+       'single' => true,
+       'type' => ($meta_key === '_jcalendar_visible_categories') ? 'array' : 'string',
+      //  'sanitize_callback' => 'sanitize_text_field'
+    ];
+
+    if ($meta_key === '_jcalendar_visible_categories') {
+        $meta_args['show_in_rest'] = [
+            'schema' => [
+                'type'  => 'array',
+                'items' => [
+                    'type' => 'string', // 配列の各要素が文字列であることを示す
+                ],
+            ],
+        ];
+    }
+    register_post_meta('jcalendar', $meta_key, $meta_args);
+ }
 
 });
 
@@ -72,6 +84,7 @@ add_action('edit_form_after_title', function($post) {
         echo '<div id="jcal-individual-preview" style="margin:2em 0;padding:1em;border:1px solid #ccc;background:#f9f9f9;">';
         echo '<h2>プレビューカレンダー</h2>';
         echo '<div id="jcalendar-preview-admin" class="jcalendar-instance">';
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- This function returns HTML which is already escaped internally.
         echo jcalendar_render_calendar_base_html($post->ID);
         echo '</div>';
         echo '</div>';

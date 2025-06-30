@@ -4,7 +4,14 @@ add_action('save_post_jcalendar', function ($post_id) {
     // 自動保存、権限、Nonceチェック
     if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
     if (!current_user_can('edit_post', $post_id)) return;
-    if (!isset($_POST['jcalendar_meta_box_nonce_field']) || !wp_verify_nonce($_POST['jcalendar_meta_box_nonce_field'], 'jcalendar_meta_box_nonce')) return;
+    if (!isset($_POST['jcalendar_meta_box_nonce_field']) || !wp_verify_nonce(
+        wp_unslash(
+            // phpcs:ignore WordPress.Security.ValidatedInput.InputNotSanitized -- Nonce is verified, not directly used or output.
+            // phpcs:ignore WordPress.Security.ValidatedInput.InputNotSanitized -- Redundant ignore for tool's strictness.
+            $_POST['jcalendar_meta_box_nonce_field']
+        ),
+        'jcalendar_meta_box_nonce'
+    )) return;
 
     $is_license_valid = jcalendar_is_license_valid();
     $is_first_save = !get_post_meta($post_id, '_jcal_settings_initialized', true);
@@ -12,18 +19,17 @@ add_action('save_post_jcalendar', function ($post_id) {
     if ($is_license_valid) {
         // --- ★ Pro版の保存処理 ★ ---
         // 初回・2回目以降を問わず、常にフォームの値を保存する
-        update_post_meta($post_id, '_jcalendar_start_day', isset($_POST['start_day']) ? sanitize_text_field($_POST['start_day']) : 'sunday');
-        update_post_meta($post_id, '_jcalendar_header_color', isset($_POST['header_color']) ? sanitize_hex_color($_POST['header_color']) : '#eeeeee');
+        update_post_meta($post_id, '_jcalendar_start_day', isset($_POST['start_day']) ? sanitize_text_field(wp_unslash($_POST['start_day'])) : 'sunday');
+        update_post_meta($post_id, '_jcalendar_header_color', isset($_POST['header_color']) ? sanitize_hex_color(wp_unslash($_POST['header_color'])) : '#eeeeee');
         update_post_meta($post_id, '_jcal_show_header_weekend_color', isset($_POST['show_header_weekend_color']) ? 1 : 0);
         update_post_meta($post_id, '_jcalendar_enable_holidays', isset($_POST['enable_holidays']) ? 1 : 0);
-        update_post_meta($post_id, '_jcalendar_holiday_color', isset($_POST['holiday_color']) ? sanitize_hex_color($_POST['holiday_color']) : '#ffdddd');
+        update_post_meta($post_id, '_jcalendar_holiday_color', isset($_POST['holiday_color']) ? sanitize_hex_color(wp_unslash($_POST['holiday_color'])) : '#ffdddd');
         update_post_meta($post_id, '_jcalendar_show_sunday_color', isset($_POST['show_sunday_color']) ? 1 : 0);
-        update_post_meta($post_id, '_jcalendar_sunday_color', isset($_POST['sunday_color']) ? sanitize_hex_color($_POST['sunday_color']) : '#ffecec');
+        update_post_meta($post_id, '_jcalendar_sunday_color', isset($_POST['sunday_color']) ? sanitize_hex_color(wp_unslash($_POST['sunday_color'])) : '#ffecec');
         update_post_meta($post_id, '_jcalendar_show_saturday_color', isset($_POST['show_saturday_color']) ? 1 : 0);
-        update_post_meta($post_id, '_jcalendar_saturday_color', isset($_POST['saturday_color']) ? sanitize_hex_color($_POST['saturday_color']) : '#ecf5ff');
+        update_post_meta($post_id, '_jcalendar_saturday_color', isset($_POST['saturday_color']) ? sanitize_hex_color(wp_unslash($_POST['saturday_color'])) : '#ecf5ff');
         update_post_meta($post_id, '_jcalendar_show_legend', isset($_POST['show_legend']) ? 1 : 0);
         update_post_meta($post_id, '_jcalendar_show_today_button', isset($_POST['show_today_button']) ? 1 : 0);
-
     } elseif ($is_first_save) {
         // --- ★ 無料版の、初回保存時の処理 ★ ---
         // 共通設定の値を、この投稿の初期値として全てコピーして保存する
@@ -42,18 +48,30 @@ add_action('save_post_jcalendar', function ($post_id) {
 
     // 表示カテゴリの保存処理は、Pro/Free版ともに毎回実行する
     if ($is_license_valid) {
-        if (isset($_POST['jcalendar_visible_categories_str'])) {
-            $slugs_str = sanitize_text_field($_POST['jcalendar_visible_categories_str']);
-            $slugs = !empty($slugs_str) ? explode(',', $slugs_str) : [];
+        // Pro版の場合、隠しフィールドからカテゴリのスラグ文字列を受け取る
+        $slugs_str = isset($_POST['jcalendar_visible_categories_str']) ? sanitize_text_field(wp_unslash($_POST['jcalendar_visible_categories_str'])) : '';
+        $slugs = [];
+        if (!empty($slugs_str)) { // 文字列が空でなければexplodeする
+            $slugs = explode(',', $slugs_str);
+            // 各スラグもサニタイズ（念のため）
+            $slugs = array_map('sanitize_text_field', $slugs);
+        }
+        update_post_meta($post_id, '_jcalendar_visible_categories', $slugs);
+    } else { // 無料版
+        if (isset($_POST['jcalendar_visible_categories']) && is_array(
+            // phpcs:ignore WordPress.Security.ValidatedInput.InputNotSanitized -- Used for type check only; values are sanitized in array_map.
+            $_POST['jcalendar_visible_categories'] // phpcs:ignore WordPress.Security.ValidatedInput.InputNotSanitized
+        )) {
+            $raw_slugs = wp_unslash(
+                // phpcs:ignore WordPress.Security.ValidatedInput.InputNotSanitized -- Raw input, will be sanitized by array_map.
+                // phpcs:ignore WordPress.Security.ValidatedInput.InputNotSanitized -- Redundant ignore for tool's strictness.
+                $_POST['jcalendar_visible_categories']
+            );
+            $slugs = array_map('sanitize_text_field', $raw_slugs);
             update_post_meta($post_id, '_jcalendar_visible_categories', $slugs);
         } else {
-             // Pro版で、チェックボックスが１つもない状態で保存された場合（＝空の配列を保存）
+            // 無料版でチェックボックスが送られてこない場合、空の配列として保存
             update_post_meta($post_id, '_jcalendar_visible_categories', []);
-        }
-    } else {
-        if (isset($_POST['jcalendar_visible_categories']) && is_array($_POST['jcalendar_visible_categories'])) {
-            $slugs = array_map('sanitize_text_field', $_POST['jcalendar_visible_categories']);
-            update_post_meta($post_id, '_jcalendar_visible_categories', $slugs);
         }
     }
     

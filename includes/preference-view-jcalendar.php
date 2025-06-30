@@ -32,8 +32,8 @@
             <tr>
               <th scope="row">週の開始曜日</th>
               <td>
-                <label><input type="radio" name="start_day" value="sunday" class="jcal-setting-input" <?= checked(get_option('jcalendar_start_day', 'sunday'), 'sunday', false); ?>> 日曜日</label><br>
-                <label><input type="radio" name="start_day" value="monday" class="jcal-setting-input" <?= checked(get_option('jcalendar_start_day', 'monday'), 'monday', false); ?>> 月曜日</label>
+                <label><input type="radio" name="start_day" value="sunday" class="jcal-setting-input" <?php echo checked(get_option('jcalendar_start_day', 'sunday'), 'sunday', false); ?>> 日曜日</label><br>
+                <label><input type="radio" name="start_day" value="monday" class="jcal-setting-input" <?php echo checked(get_option('jcalendar_start_day', 'monday'), 'monday', false); ?>> 月曜日</label>
               </td>
             </tr>
             <tr>
@@ -41,9 +41,9 @@
               <td>
                 <?php $color = esc_attr(get_option('jcalendar_header_color', '#eeeeee')); ?>
                 <?php if ($is_license_valid): ?>
-                  <input type="color" name="header_color" id="jcal-header-color-input" class="jcal-setting-input" value="<?= $color ?>">
+                  <input type="color" name="header_color" id="jcal-header-color-input" class="jcal-setting-input" value="<?php echo esc_attr($color) ?>">
                 <?php else: ?>
-                  <span style="display: inline-block; width: 60px; height: 28px; border: 1px solid #ccc; background-color: <?= $color ?>; vertical-align: middle;"></span>
+                  <span style="display: inline-block; width: 60px; height: 28px; border: 1px solid #ccc; background-color: <?php echo esc_attr($color) ?>; vertical-align: middle;"></span>
                 <?php endif; ?>
               </td>
             </tr>
@@ -51,14 +51,14 @@
               <th scope="row">日本の祝日</th>
               <td>
                 <label>
-                  <input type="checkbox" name="enable_holidays" value="1" class="jcal-setting-input" <?= checked(get_option('jcalendar_enable_holidays', 1), 1, false); ?>> 祝日を表示する
+                  <input type="checkbox" name="enable_holidays" value="1" class="jcal-setting-input" <?php echo checked(get_option('jcalendar_enable_holidays', 1), 1, false); ?>> 祝日を表示する
                 </label>
                 
                 <?php $color = esc_attr(get_option('jcalendar_holiday_color', '#ffdddd')); ?>
                 <?php if ($is_license_valid): ?>
-                  <input type="color" name="holiday_color" id="jcal-holiday-color-input" class="jcal-setting-input" value="<?= $color ?>" style="margin-left: 10px;">
+                  <input type="color" name="holiday_color" id="jcal-holiday-color-input" class="jcal-setting-input" value="<?php echo esc_attr($color) ?>" style="margin-left: 10px;">
                 <?php else: ?>
-                  <span style="display: inline-block; width: 60px; height: 28px; border: 1px solid #ccc; background-color: <?= $color ?>; margin-left: 10px; vertical-align: middle;"></span>
+                  <span style="display: inline-block; width: 60px; height: 28px; border: 1px solid #ccc; background-color: <?php echo esc_attr($color) ?>; margin-left: 10px; vertical-align: middle;"></span>
                 <?php endif; ?>
               </td>
             </tr>
@@ -66,26 +66,26 @@
               <th scope="row">土日の色</th>
               <td>
                 <label style="font-weight: bold; display: block; margin-bottom: 5px;">
-                  <input type="checkbox" name="jcal_show_header_weekend_color" id="jcal-header-weekend-color-toggle" class="jcal-setting-input" value="1" <?= checked(get_option('jcal_show_header_weekend_color', 1), 1, false); ?>>
+                  <input type="checkbox" name="jcal_show_header_weekend_color" id="jcal-header-weekend-color-toggle" class="jcal-setting-input" value="1" <?php echo checked(get_option('jcal_show_header_weekend_color', 1), 1, false); ?>>
                   曜日ヘッダーを色付けする
                 </label>
                 <hr style="margin: 10px 0;">
                 
-                <label><input type="checkbox" name="show_sunday_color" value="1" class="jcal-setting-input" <?= checked(get_option('jcalendar_show_sunday_color', 1), 1, false); ?>> 日付セルの日曜を色付け</label>
+                <label><input type="checkbox" name="show_sunday_color" value="1" class="jcal-setting-input" <?php echo checked(get_option('jcalendar_show_sunday_color', 1), 1, false); ?>> 日付セルの日曜を色付け</label>
                 <?php $color = esc_attr(get_option('jcalendar_sunday_color', '#ffecec')); ?>
                 <?php if ($is_license_valid): ?>
-                  <input type="color" name="sunday_color" id="jcal-sunday-color-input" class="jcal-setting-input" value="<?= $color ?>">
+                  <input type="color" name="sunday_color" id="jcal-sunday-color-input" class="jcal-setting-input" value="<?php echo esc_attr($color) ?>">
                 <?php else: ?>
-                  <span style="display: inline-block; width: 60px; height: 28px; border: 1px solid #ccc; background-color: <?= $color ?>; vertical-align: middle;"></span>
+                  <span style="display: inline-block; width: 60px; height: 28px; border: 1px solid #ccc; background-color: <?php echo esc_attr($color) ?>; vertical-align: middle;"></span>
                 <?php endif; ?>
 
                 <br><br>
-                <label><input type="checkbox" name="show_saturday_color" value="1" class="jcal-setting-input" <?= checked(get_option('jcalendar_show_saturday_color', 1), 1, false); ?>> 日付セルの土曜を色付け</label>
+                <label><input type="checkbox" name="show_saturday_color" value="1" class="jcal-setting-input" <?php echo checked(get_option('jcalendar_show_saturday_color', 1), 1, false); ?>> 日付セルの土曜を色付け</label>
                 <?php $color = esc_attr(get_option('jcalendar_saturday_color', '#ecf5ff')); ?>
                 <?php if ($is_license_valid): ?>
-                  <input type="color" name="saturday_color" id="jcal-saturday-color-input" class="jcal-setting-input" value="<?= $color ?>">
+                  <input type="color" name="saturday_color" id="jcal-saturday-color-input" class="jcal-setting-input" value="<?php echo esc_attr($color) ?>">
                 <?php else: ?>
-                  <span style="display: inline-block; width: 60px; height: 28px; border: 1px solid #ccc; background-color: <?= $color ?>; vertical-align: middle;"></span>
+                  <span style="display: inline-block; width: 60px; height: 28px; border: 1px solid #ccc; background-color: <?php echo esc_attr($color) ?>; vertical-align: middle;"></span>
                 <?php endif; ?>
               </td>
             </tr>
@@ -93,7 +93,7 @@
               <th scope="row">カテゴリ凡例</th>
               <td>
                 <label>
-                  <input type="checkbox" name="show_legend" value="1" id="jcal-legend-toggle-input" class="jcal-setting-input" <?= checked(get_option('jcalendar_show_legend', 1), 1, false); ?>> カレンダー下に凡例を表示する
+                  <input type="checkbox" name="show_legend" value="1" id="jcal-legend-toggle-input" class="jcal-setting-input" <?php echo checked(get_option('jcalendar_show_legend', 1), 1, false); ?>> カレンダー下に凡例を表示する
                 </label>
               </td>
             </tr>
@@ -101,7 +101,7 @@
               <th scope="row">「今月に戻る」ボタン</th>
               <td>
                 <label>
-                  <input type="checkbox" name="jcal_show_today_button" value="1" id="jcal-show-today-button-input" <?= checked(get_option('jcal_show_today_button', 1), 1, false); ?>> カレンダーに「今月に戻る」ボタンを表示する
+                  <input type="checkbox" name="jcal_show_today_button" value="1" id="jcal-show-today-button-input" <?php echo checked(get_option('jcal_show_today_button', 1), 1, false); ?>> カレンダーに「今月に戻る」ボタンを表示する
                 </label>
               </td>
             </tr>
@@ -132,6 +132,7 @@
     <h2>プレビューカレンダー</h2>
     <p>実際の日付をクリックして、カテゴリの割り当てができます。</p>
     <div id="jcal-preview-wrapper">
+      <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- This function returns HTML which is already escaped internally. ?>
       <?php echo jcalendar_render_calendar_base_html(); ?>
     </div>
     <hr>
