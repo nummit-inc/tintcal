@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 // 管理メニューの追加
 add_action('admin_menu', function () {
 

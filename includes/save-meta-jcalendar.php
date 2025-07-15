@@ -1,17 +1,11 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 add_action('save_post_jcalendar', function ($post_id) {
     // 自動保存、権限、Nonceチェック
     if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
     if (!current_user_can('edit_post', $post_id)) return;
-    if (!isset($_POST['jcalendar_meta_box_nonce_field']) || !wp_verify_nonce(
-        wp_unslash(
-            // phpcs:ignore WordPress.Security.ValidatedInput.InputNotSanitized -- Nonce is verified, not directly used or output.
-            // phpcs:ignore WordPress.Security.ValidatedInput.InputNotSanitized -- Redundant ignore for tool's strictness.
-            $_POST['jcalendar_meta_box_nonce_field']
-        ),
-        'jcalendar_meta_box_nonce'
-    )) return;
+    if (!isset($_POST['jcalendar_meta_box_nonce_field']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['jcalendar_meta_box_nonce_field'])), 'jcalendar_meta_box_nonce')) return;
 
     $is_license_valid = jcalendar_is_license_valid();
     $is_first_save = !get_post_meta($post_id, '_jcal_settings_initialized', true);
@@ -58,21 +52,23 @@ add_action('save_post_jcalendar', function ($post_id) {
         }
         update_post_meta($post_id, '_jcalendar_visible_categories', $slugs);
     } else { // 無料版
-        if (isset($_POST['jcalendar_visible_categories']) && is_array(
-            // phpcs:ignore WordPress.Security.ValidatedInput.InputNotSanitized -- Used for type check only; values are sanitized in array_map.
-            $_POST['jcalendar_visible_categories'] // phpcs:ignore WordPress.Security.ValidatedInput.InputNotSanitized
-        )) {
-            $raw_slugs = wp_unslash(
-                // phpcs:ignore WordPress.Security.ValidatedInput.InputNotSanitized -- Raw input, will be sanitized by array_map.
-                // phpcs:ignore WordPress.Security.ValidatedInput.InputNotSanitized -- Redundant ignore for tool's strictness.
-                $_POST['jcalendar_visible_categories']
-            );
-            $slugs = array_map('sanitize_text_field', $raw_slugs);
-            update_post_meta($post_id, '_jcalendar_visible_categories', $slugs);
-        } else {
-            // 無料版でチェックボックスが送られてこない場合、空の配列として保存
-            update_post_meta($post_id, '_jcalendar_visible_categories', []);
+        // 1. デフォルト値を設定
+        $sanitized_slugs = [];
+
+        // 2. POSTデータの存在だけをチェック
+        if (isset($_POST['jcalendar_visible_categories'])) {
+            // 3. 存在すれば、直ちに wp_unslash を実行
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The value is sanitized in the next step.
+            $unslashed_data = wp_unslash($_POST['jcalendar_visible_categories']);
+
+            // 4. unslash したデータが配列であることを確認し、サニタイズ
+            if (is_array($unslashed_data)) {
+                $sanitized_slugs = array_map('sanitize_text_field', $unslashed_data);
+            }
         }
+
+        // 5. 最終的にサニタイズされたデータを保存
+        update_post_meta($post_id, '_jcalendar_visible_categories', $sanitized_slugs);
     }
     
     // 初回保存が完了したことを記録するフラグを立てる

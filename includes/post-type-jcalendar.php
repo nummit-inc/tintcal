@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 // 投稿タイプ tintcal 登録
 add_action('init', function () {
   register_post_type('jcalendar', [

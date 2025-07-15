@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 // カラムの定義（ショートコード、カテゴリ数）
 add_filter('manage_jcalendar_posts_columns', function ($columns) {
   $columns['cb'] = '<input type="checkbox" />';

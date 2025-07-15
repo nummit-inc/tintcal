@@ -1,3 +1,4 @@
+<?php if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly ?>
 <div class="wrap">
     <h1>プラグイン設定</h1>
     <p>このページでは、TintCalプラグインの全体的な設定を行います。</p>

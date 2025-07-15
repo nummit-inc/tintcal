@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 // File: includes/meta-box-jcalendar.php
 /**
  * カスタム投稿 tintcal の編集画面に「カレンダー設定」メタボックスを追加
@@ -10,7 +11,7 @@ add_action('add_meta_boxes', function () {
     add_meta_box(
         'jcalendar_meta_box',              // メタボックスID
         'カレンダー設定',                  // タイトル
-        'render_jcalendar_meta_box',       // コールバック関数
+        'jcalendar_render_meta_box',       // コールバック関数
         'jcalendar',                       // 投稿タイプ
         'normal',                          // コンテキスト
         'high'                          // 優先度
@@ -18,7 +19,7 @@ add_action('add_meta_boxes', function () {
 });
 
 // メタボックスの中身を出力する関数
-function render_jcalendar_meta_box($post) {
+function jcalendar_render_meta_box($post) {
     // 保存用 nonce フィールド
     wp_nonce_field('jcalendar_meta_box_nonce', 'jcalendar_meta_box_nonce_field');
 

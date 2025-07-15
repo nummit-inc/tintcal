@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 // File: includes/shortcode-frontend-jcalendar.php
 
 add_shortcode('tintcal', 'jcalendar_frontend_shortcode_handler');

@@ -627,7 +627,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // サーバーでのリセットが成功した場合のみ、画面を更新
         if (json.success) {
           window.jcalendarPluginData.assignments = {}; // JavaScript上のデータも空にする
-          drawCalendar(holidayCache || {}); // 空になったデータでカレンダーを再描画
+          drawCalendar(); // 空になったデータでカレンダーを再描画
           alert("日付の割当を初期化しました");
         } else {
           alert("初期化に失敗しました。");
@@ -668,7 +668,7 @@ document.addEventListener("DOMContentLoaded", function () {
           if (typeof renderCategoryTable === 'function') {
             renderCategoryTable();
           }
-          drawCalendar(holidayCache || {});
+          drawCalendar();
           
           alert("全データを初期化しました");
         } else {

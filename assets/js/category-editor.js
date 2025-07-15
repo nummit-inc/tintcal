@@ -88,7 +88,9 @@ function bindCategoryEvents() {
 
   // 削除ボタン
   document.querySelectorAll(".delete-category").forEach(btn => {
-    btn.onclick = async function () {
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    newBtn.onclick = async function () {
       const slug = this.getAttribute("data-slug");
       const categories = loadCategories();
       const cat = categories.find(c => c.slug === slug);
@@ -104,7 +106,9 @@ function bindCategoryEvents() {
 
   // 編集ボタン
   document.querySelectorAll(".edit-category").forEach(btn => {
-    btn.onclick = function () {
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    newBtn.onclick = function () {
       const row = this.closest("tr");
       document.querySelectorAll(".save-category").forEach(saveBtn => {
         if (saveBtn.style.display !== 'none') {
@@ -122,9 +126,11 @@ function bindCategoryEvents() {
 
   // 保存ボタン
   document.querySelectorAll(".save-category").forEach(btn => {
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
     const saveHandler = async function () {
-      const row = this.closest("tr");
-      const slug = this.getAttribute("data-slug");
+      const row = newBtn.closest("tr");
+      const slug = newBtn.getAttribute("data-slug");
       const newName = row.querySelector(".edit-name-input").value.trim();
       const newColor = row.querySelector(".edit-color-input").value;
       if (!newName) {
@@ -144,22 +150,24 @@ function bindCategoryEvents() {
         updateUI();
       }
     };
-    btn.onclick = saveHandler;
-    btn.addEventListener('cancel-edit', () => {
-        const row = btn.closest("tr");
+    newBtn.onclick = saveHandler;
+    newBtn.addEventListener('cancel-edit', () => {
+        const row = newBtn.closest("tr");
         row.querySelector(".cat-name").style.display = "";
         row.querySelector(".edit-name-input").style.display = "none";
         row.querySelector(".cat-color").style.display = "";
         row.querySelector(".edit-color-input").style.display = "none";
         row.querySelector(".edit-category").style.display = "";
-        btn.style.display = "none";
+        newBtn.style.display = "none";
     });
   });
   
   // 上へ移動ボタン・下へ移動ボタン
   ['.move-up-category', '.move-down-category'].forEach(selector => {
       document.querySelectorAll(selector).forEach(btn => {
-        btn.onclick = async function () {
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        newBtn.onclick = async function () {
           const slug = this.getAttribute("data-slug");
           let categories = loadCategories();
           const idx = categories.findIndex(c => c.slug === slug);
@@ -177,7 +185,9 @@ function bindCategoryEvents() {
   
   // 表示/非表示チェックボックス
   document.querySelectorAll(".toggle-visibility").forEach(checkbox => {
-    checkbox.onchange = async function() {
+    const newCheckbox = checkbox.cloneNode(true);
+    checkbox.parentNode.replaceChild(newCheckbox, checkbox);
+    newCheckbox.onchange = async function() {
       const slug = this.getAttribute("data-slug");
       const isVisible = this.checked;
       const categories = loadCategories();
