@@ -1,38 +1,46 @@
 // assets/js/calendar-front.js
 
-// 祝日データは JCalendar クラスのプロパティとして管理するため、グローバルな宣言は不要
+// i18n defaults (override via wp_localize_script -> window.tintcalI18n)
+const I18N = (window.tintcalI18n || {
+  unexpectedResponse: '予期しない応答',
+  failedToSaveHolidays: '祝日データの保存に失敗しました。',
+  ajaxError: 'Ajax通信エラー',
+  reloadPage: '祝日データの取得中に問題が発生しました。再読み込みしてください。'
+});
+
+// 祝日データは TintCal クラスのプロパティとして管理するため、グローバルな宣言は不要
 
 
 function saveHolidaysToLocal(year, holidays) {
 
-  fetch(jcalendarPluginData.ajaxUrl, {
+  fetch(tintcalPluginData.ajaxUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded"
     },
     body: new URLSearchParams({
-      action: "save_jcalendar_holidays",
+      action: "save_tintcal_holidays",
       year: year,
       holidays: JSON.stringify(holidays),
-      locale: jcalendarPluginData.locale || 'ja',
-      _ajax_nonce: jcalendarPluginData.nonce
+      locale: tintcalPluginData.locale || 'ja',
+      _ajax_nonce: tintcalPluginData.nonce
     })
   })
   .then(res => {
     if (!res.ok) {
-      console.warn("⚠️ レスポンスNG:", res.status, res.statusText);
+      console.warn("⚠️ " + I18N.unexpectedResponse + ":", res.status, res.statusText);
     }
     return res.json();
   })
   .then(result => {
     if (result.success) {
     } else {
-      console.warn("❌ 祝日保存失敗:", result);
+      console.warn("❌ " + I18N.failedToSaveHolidays + ":", result);
     }
   })
   .catch(err => {
-    console.error("❌ Ajax通信エラー:", err, "at", new Date().toLocaleString());
-    alert("祝日データの取得中に問題が発生しました。再読み込みしてください。");
+    console.error("❌ " + I18N.ajaxError + ":", err, "at", new Date().toLocaleString());
+    alert(I18N.reloadPage);
   });
 }
 window.saveHolidaysToLocal = saveHolidaysToLocal;
@@ -40,12 +48,14 @@ window.saveHolidaysToLocal = saveHolidaysToLocal;
 /**
  * TintCalの各インスタンスを管理するクラス
  */
-class JCalendar {
+class TintCal {
     /**
-     * @param {string} selector - カレンダーのコンテナ要素を特定するCSSセレクタ (例: '#jcalendar-container-123-abc')
+     * @param {string} selector - カレンダーのコンテナ要素を特定するCSSセレクタ (例: '#tintcal-container-123-abc')
      * @param {object} settings - PHPから渡される、このカレンダー専用の設定オブジェクト
      */
     constructor(selector, settings) {
+        console.log('TintCal instance created for:', selector);
+        console.log('Received settings:', settings);
         this.container = document.querySelector(selector);
         if (!this.container) {
             console.error(`TintCal Error: Container element "${selector}" not found.`);
@@ -59,12 +69,12 @@ class JCalendar {
         this.currentMonth = new Date().getMonth();
 
         // --- DOM要素の取得 ---
-        this.monthYearEl = this.container.querySelector('.mjc-month-year');
+        this.monthYearEl = this.container.querySelector('.tintcal-month-year');
         this.prevBtn = this.container.querySelector('.prev-month');
         this.nextBtn = this.container.querySelector('.next-month');
         this.todayBtn = this.container.querySelector('.back-to-today');
-        this.calendarBody = this.container.querySelector('.mjc-calendar tbody');
-        this.calendarHead = this.container.querySelector('.mjc-calendar thead tr');
+        this.calendarBody = this.container.querySelector('.tintcal-calendar tbody');
+        this.calendarHead = this.container.querySelector('.tintcal-calendar thead tr');
         this.legendContainer = this.container.querySelector('.calendar-legend');
         
         // 初期化処理を実行
@@ -129,7 +139,7 @@ class JCalendar {
         }
 
         const locale = this.settings.locale || 'ja';
-        const localUrl = `${this.settings.pluginUrl}assets/holidays/${locale}/${year}.json`;
+        const localUrl = `${this.settings.holidayJsonUrl}/${locale}/${year}.json`;
 
         try {
             // 1. まずローカルのJSONファイルを試す
@@ -230,27 +240,20 @@ class JCalendar {
                         titleText = yearHolidays[dateString];
                     }
 
-                    // カテゴリの色設定（最優先）
-                    const assignedSlugs = assignments[dateString] || [];
-                    if (assignedSlugs.length > 0) {
-                        const visibleSlugs = settings.visibleCategories;
-                        const assignedCategories = categories
-                            .filter(cat => assignedSlugs.includes(cat.slug) && visibleSlugs.includes(cat.slug))
-                            .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
-                        
-                        if (assignedCategories.length > 0) {
-                            // 背景色は、表示順で一番上のカテゴリの色を適用
-                            const topCategory = assignedCategories[0];
-                            cell.style.backgroundColor = topCategory.color;
-
+                    // カテゴリの色設定（単一カテゴリ製品）
+                    let assigned = assignments[dateString];
+                    // 配列の場合は先頭のみ、文字列ならそのまま採用
+                    const assignedSlug = Array.isArray(assigned) ? assigned[0] : (assigned || null);
+                    if (assignedSlug) {
+                        const visibleSlugs = settings.visibleCategories || [];
+                        const matched = categories
+                          .filter(cat => cat.slug === assignedSlug && (visibleSlugs.length === 0 || visibleSlugs.includes(cat.slug)));
+                        if (matched.length > 0) {
+                            const cat = matched[0];
+                            cell.style.backgroundColor = cat.color;
                             // 祝日名などが既にあれば区切り文字を追加
                             if (titleText) titleText += ' / ';
-
-                            // 割り当てられた全てのカテゴリ名を取得し、' / 'で連結
-                            const categoryNames = assignedCategories.map(cat => cat.name).join(' / ');
-                            
-                            // 連結したカテゴリ名をツールチップ用テキストに追加
-                            titleText += categoryNames;
+                            titleText += cat.name;
                         }
                     }
                     if (titleText) cell.title = titleText;

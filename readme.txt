@@ -1,69 +1,79 @@
 === TintCal ===
-Contributors: QuantaLumina
-Tags: calendar, event, event calendar, simple calendar, shortcode, block editor, events
+Contributors: nummit7310
+Tags: calendar, events, schedule, holiday, business hours
 Requires at least: 5.8
 Tested up to: 6.8
-Stable tag: 2.1
-License: GPLv2 or later
+Requires PHP: 7.4
+Stable tag: 2.2.2
+License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-日本のWordPressユーザーのために作られた、美しく、シンプルで直感的なイベントカレンダープラグイン。ショートコードやブロック一つで、どんなサイトにも簡単にイベントカレンダーを設置できます。
+A beautiful and simple event calendar plugin for Japanese users. Add a calendar to any site with a shortcode, block, or widget.
 
 == Description ==
 
-TintCalは、日本のウェブサイト制作者と運営者のために設計された、新しい形のイベントカレンダープラグインです。
-複雑な設定や海外製プラグイン特有の分かりにくさを解消し、「ただイベントカレンダーを置きたい」というシンプルなニーズに、最高の使いやすさと美しいデザインで応えます。
+TintCal is a new kind of event calendar plugin designed for Japanese website creators and administrators.
+It eliminates the complexity and confusion often found in plugins made overseas, responding to the simple need of "just wanting to place an event calendar" with the best usability and a beautiful design.
 
-**= 主な機能（無料版） =**
+**= Key Features =**
 
-* **簡単なイベント登録:** WordPressの管理画面から、誰でも直感的にイベントの登録・編集が可能です。
-* **ショートコード/ブロック対応:** `[tintcal id="..."] ` というショートコード、または専用のブロックをエディタに配置するだけで、どこにでもカレンダーを設置できます。
-* **レスポンシブデザイン:** スマートフォンやタブレットでも、カレンダーの表示が崩れることなく、美しく表示されます。
-* **シンプルな設定:** 色設定などの基本的なカスタマイズは、最小限の項目で簡単に行えます。
-* **祝日表示:** 日本の祝日をカレンダー上に自動で表示します。
-
-**= TintCal Proで、さらに多くの可能性を =**
-
-さらに高度な機能が必要な方向けに、TintCal Proもご用意しています。
-
-* **詳細なデザインカスタマイズ**
-* **イベントカテゴリの作成と色分け**
-* **管理者向けの権限設定**
-* **メールによる優先サポート**
-
-Pro版の機能詳細やご購入は、公式サイトをご覧ください。
-[→ TintCal公式サイトでPro版の詳細を見る](https://tintcal.com/pricing/)
+*   **Easy Event Registration:** Anyone can intuitively register and edit events from the WordPress admin screen.
+*   **Shortcode/Block Support:** Place a calendar anywhere just by adding the `[tintcal id="..."]` shortcode or a dedicated block in the editor.
+*   **Responsive Design:** The calendar displays beautifully without breaking its layout on smartphones or tablets.
+*   **Simple Settings:** Basic customizations, such as the calendar header and weekend colors, can be easily configured.
+*   **Holiday Display:** Automatically displays Japanese public holidays on the calendar.
+*   **Simple Category Management:** You can register one type of schedule as a category and color-code the calendar.
 
 == Installation ==
 
-1.  WordPress管理画面の「プラグイン」>「新規追加」メニューを開きます。
-2.  `tintcal.zip` をアップロードするか、公式ディレクトリから「TintCal」を検索してインストールします。
-3.  プラグインを有効化します。
-4.  カレンダーを表示したい投稿や固定ページに、ショートコード `[tintcal id="..."] ` を記述することで追加されます。
+1.  Upload the plugin files to the `/wp-content/plugins/` directory, or install the plugin through the WordPress plugins screen directly.
+2.  Activate the plugin through the 'Plugins' screen in WordPress.
+3.  Configure the settings by navigating to Settings > TintCal in your WordPress dashboard.
 
 == Frequently Asked Questions ==
 
-= カレンダーを表示するにはどうすればいいですか？ =
+= How do I display the calendar? =
 
-投稿や固定ページの、カレンダーを表示したい場所にショートコード `[tintcal id="..."] ` を記述してください。
+Add the shortcode `[tintcal id="..."]` to the post or page where you want the calendar to appear.
 
-= Pro版の機能について詳しく知りたいです =
+= Where can I get support? =
 
-Pro版で利用可能になる機能の詳細は、公式サイトの料金ページでご確認いただけます。
-[https://tintcal.com/pricing/](https://tintcal.com/pricing/)
+For basic questions, please use the official support forums on WordPress.org.
 
-= サポートはどこで受けられますか？ =
+= Troubleshooting: the display or behavior looks wrong =
+Temporarily disable cache/optimization plugins (JS/CSS minification, lazy loading) and any CDN. If the issue persists, switch to a default theme (e.g., Twenty Twenty-Five) to check for theme/plugin conflicts. Please include exact reproduction steps.
 
-基本的なご質問は、WordPress.orgの公式サポートフォーラムをご利用ください。Pro版ユーザーの方は、公式サイトからのメールによる優先サポートをご利用いただけます。
+= The update installed but nothing changed =
+Clear browser, server, and plugin caches, and purge your CDN if you use one. Confirm the Plugins screen shows “Version: 2.2.1”.
+
+= What information should I include in a bug report? =
+- WordPress and PHP versions (e.g., WP 6.6 / PHP 8.1)
+- Theme and major active plugins
+- Steps to reproduce (1 → 2 → 3)
+- Expected result vs actual result
+- Screenshots or error logs, if possible
 
 == Screenshots ==
 
-1.  フロントエンドでのカレンダー表示例 (The calendar display on the front-end.)
-2.  イベント登録画面 (The event registration screen.)
-3.  プラグイン設定画面 (The plugin settings screen.)
-4.  基本設定画面 (The base settings screen.)
+1.  The calendar display on the front-end.
+2.  The event registration screen.
+3.  The plugin settings screen.
+4.  The base settings screen.
 
 == Changelog ==
 
+= 2.2.2 =
+*   Fix: incorrect calendar layout in some themes.
+
+= 2.2.1 =
+*   Initial release on wordpress.org.
+
+= 2.2.0 =
+*   Major refactoring for the public release. Removed license verification and Pro features.
+*   Simplified the settings page and admin menus.
+*   Added a page to introduce the Pro version.
+*   Fixed a bug where category visibility settings were not saved correctly in the block editor.
+*   Fixed a bug where the export file name date was incorrect depending on the time zone.
+
 = 2.1 =
-* Initial public release.
+*   Initial public release.

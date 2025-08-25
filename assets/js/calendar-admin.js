@@ -8,10 +8,47 @@ window.saveHolidaysToLocal = saveHolidaysToLocal;
 var currentYear, currentMonth;
 // holidayCache のグローバル宣言は削除
 const isAdminScreen =
-  window.location.href.includes("page=jcalendar-settings") ||
-  window.location.href.includes("page=jcalendar-preference") ||
+  window.location.href.includes("page=tintcal-settings") ||
+  window.location.href.includes("page=tintcal-preference") ||
   window.location.href.includes("post.php?post=");
+
 const HOLIDAY_REFRESH_MONTHS = 6;
+
+/** i18n defaults (override via wp_localize_script -> window.tintcalI18n) */
+// グローバルなI18Nオブジェクトを安全に初期化します
+const I18N = (window.I18N = window.I18N || {});
+Object.assign(I18N, (window.tintcalI18n || {
+  // generic
+  loading: "取得中...",
+  reloadHoliday: "祝日データを再取得",
+  // sidebar/help
+  pleaseCreateCategory: "まずは「カテゴリ追加・編集」でカテゴリを登録してください。",
+  // import messages
+  importSuccess: "カテゴリと日付データをインポートしました。",
+  importError: "インポートに失敗しました。JSONの形式を確認してください。",
+  pleaseSelectFile: "ファイルを選択してください。",
+  // save/assign modal
+  saved: "保存しました",
+  failedToSave: "保存に失敗しました。",
+  // reset confirmations / results
+  resetDatesConfirm: "すべてのカレンダー日付割当を初期化します。よろしいですか？",
+  resetDatesOk: "日付の割当を初期化しました",
+  resetFailed: "初期化に失敗しました。",
+  resetError: "初期化中にエラーが発生しました。",
+  resetAllConfirm: "この操作は元に戻せません。本当に全データを初期化しますか？",
+  resetAllOk: "全データを初期化しました",
+  // holiday reload messages
+  holidayUpdatedHeader: "<strong>祝日データの更新が完了しました。</strong>",
+  yearUpdated: (year) => `✅ ${year}年: 更新しました。`,
+  yearFailed: (year, err) => `❌ ${year}年: 失敗しました (${err})`,
+  fetchHolidayFailed: "祝日データの再取得に失敗しました。",
+  fetchHolidayError: "祝日再取得中にエラーが発生しました。",
+  // saveHolidaysToLocal()
+  unexpectedResponse: "予期しない応答",
+  failedToSaveHolidays: "祝日データの保存に失敗しました。",
+  ajaxError: "Ajax通信エラー",
+  reloadPage: "祝日データの取得中に問題が発生しました。再読み込みしてください。"
+}));
 
 // =============================
 // ユーティリティ関数
@@ -20,7 +57,7 @@ const HOLIDAY_REFRESH_MONTHS = 6;
 
 function loadDateAssignments() {
   try {
-    return window.jcalendarPluginData?.assignments || {};
+    return window.tintcalPluginData?.assignments || {};
   } catch (e) {
     return {};
   }
@@ -50,35 +87,34 @@ function showTemporaryMessage(msg, duration = 2000) {
 
 
 function saveHolidaysToLocal(year, holidays) {
-
-  fetch(jcalendarPluginData.ajaxUrl, {
+  fetch(tintcalPluginData.ajaxUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded"
     },
     body: new URLSearchParams({
-      action: "save_jcalendar_holidays",
+      action: "save_tintcal_holidays",
       year: year,
       holidays: JSON.stringify(holidays),
-      locale: jcalendarPluginData.locale || 'ja',
-      _ajax_nonce: jcalendarPluginData.nonce
+      locale: tintcalPluginData.locale || 'ja',
+      _ajax_nonce: tintcalPluginData.nonce
     })
   })
   .then(res => {
     if (!res.ok) {
-      console.warn("⚠️ レスポンスNG:", res.status, res.statusText);
+      console.warn("⚠️ " + I18N.unexpectedResponse + ":", res.status, res.statusText);
     }
     return res.json();
   })
   .then(result => {
     if (result.success) {
     } else {
-      console.warn("❌ 祝日保存失敗:", result);
+      console.warn("❌ " + I18N.failedToSaveHolidays + ":", result);
     }
   })
   .catch(err => {
-    console.error("❌ Ajax通信エラー:", err, "at", new Date().toLocaleString());
-    alert("祝日データの取得中に問題が発生しました。再読み込みしてください。");
+    console.error("❌ " + I18N.ajaxError + ":", err, "at", new Date().toLocaleString());
+    alert(I18N.reloadPage);
   });
 }
 
@@ -90,19 +126,19 @@ function saveHolidaysToLocal(year, holidays) {
  * @returns {Promise<void>}
  */
 async function fetchAndCacheYearlyHolidays(year) {
-    const holidaysData = window.jcalendarPluginData.holidays || {};
+    const holidaysData = window.tintcalPluginData.holidays || {};
     if (typeof holidaysData[year] !== 'undefined') {
         return; // メモリにデータがあれば何もしない
     }
 
-    const locale = window.jcalendarPluginData.locale || 'ja';
-    const localUrl = `${window.jcalendarPluginData.pluginUrl}assets/holidays/${locale}/${year}.json`;
+    const locale = window.tintcalPluginData.locale || 'ja';
+    const localUrl = `${window.tintcalPluginData.holidayJsonUrl}/${locale}/${year}.json`;
 
     try {
         // 1. まずローカルのJSONファイルを試す
         const localRes = await fetch(localUrl);
         if (localRes.ok) {
-            window.jcalendarPluginData.holidays[year] = await localRes.json();
+            window.tintcalPluginData.holidays[year] = await localRes.json();
             return; // 成功したので終了
         }
 
@@ -112,7 +148,7 @@ async function fetchAndCacheYearlyHolidays(year) {
             const externalRes = await fetch(externalUrl);
             if (externalRes.ok) {
                 const holidayJson = await externalRes.json(); // 一時変数に取得
-                window.jcalendarPluginData.holidays[year] = holidayJson; // メモリ上のデータを更新
+                window.tintcalPluginData.holidays[year] = holidayJson; // メモリ上のデータを更新
 
                 // 取得したデータを、サーバーに保存し直すよう依頼する
                 if (typeof window.saveHolidaysToLocal === 'function') {
@@ -121,16 +157,16 @@ async function fetchAndCacheYearlyHolidays(year) {
                 
             } else {
                 // 外部APIにもなければ「データなし」と記憶
-                window.jcalendarPluginData.holidays[year] = {};
+                window.tintcalPluginData.holidays[year] = {};
             }
         } else {
             // 日本以外の場合は外部APIがないので「データなし」とする
-            window.jcalendarPluginData.holidays[year] = {};
+            window.tintcalPluginData.holidays[year] = {};
         }
 
     } catch (e) {
         console.error(`${year}年の祝日データ取得に失敗:`, e);
-        window.jcalendarPluginData.holidays[year] = {}; // エラー時も空として扱う
+        window.tintcalPluginData.holidays[year] = {}; // エラー時も空として扱う
     }
 }
 
@@ -142,19 +178,19 @@ async function drawCalendar() { // 1. async を追加
   // 2. ▼▼▼ 描画の前に、この年の祝日データがあるか確認・取得 ▼▼▼
   await fetchAndCacheYearlyHolidays(currentYear);
 
-  const calendarContainerInner = document.querySelector(".mjc-calendar-container-inner");
+  const calendarContainerInner = document.querySelector(".tintcal-calendar-container-inner");
   if (!calendarContainerInner) {
-    console.warn("drawCalendar: .mjc-calendar-container-inner not found, skipping render.");
+    console.warn("drawCalendar: .tintcal-calendar-container-inner not found, skipping render.");
     return;
   }
 
-  var calendarBody = calendarContainerInner.querySelector(".mjc-calendar tbody");
-  var calendarHead = calendarContainerInner.querySelector(".mjc-calendar thead tr");
-  const startDay = calendarContainerInner.querySelector(".jcalendar-start-day")?.value || "sunday";
-  const monthYearEl = calendarContainerInner.querySelector('.mjc-month-year');
-  const enableHolidays = document.getElementById("jcalendar-enable-holidays")?.value === "1";
-  const holidayColor = document.getElementById("jcalendar-holiday-color")?.value || "#ffdddd";
-  const yearHolidays = jcalendarPluginData.holidays[currentYear] || {};
+  var calendarBody = calendarContainerInner.querySelector(".tintcal-calendar tbody");
+  var calendarHead = calendarContainerInner.querySelector(".tintcal-calendar thead tr");
+  const startDay = calendarContainerInner.querySelector(".tintcal-start-day")?.value || "sunday";
+  const monthYearEl = calendarContainerInner.querySelector('.tintcal-month-year');
+  const enableHolidays = document.getElementById("tintcal-enable-holidays")?.value === "1";
+  const holidayColor = document.getElementById("tintcal-holiday-color")?.value || "#ffdddd";
+  const yearHolidays = tintcalPluginData.holidays[currentYear] || {};
         if (enableHolidays && yearHolidays[key]) {
           cell.style.backgroundColor = holidayColor;
           titleText = yearHolidays[key];
@@ -162,12 +198,12 @@ async function drawCalendar() { // 1. async を追加
   const weekdayOffset = startDay === "monday" ? 1 : 0;
   const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
   const reorderedWeekdays = weekdays.slice(weekdayOffset).concat(weekdays.slice(0, weekdayOffset));
-  window.jcalendarPluginData.categories = Array.isArray(window.jcalendarPluginData.categories)
-  ? window.jcalendarPluginData.categories
-  : Object.values(window.jcalendarPluginData.categories || {});
-  let userCategories = window.jcalendarPluginData.categories;
+  window.tintcalPluginData.categories = Array.isArray(window.tintcalPluginData.categories)
+  ? window.tintcalPluginData.categories
+  : Object.values(window.tintcalPluginData.categories || {});
+  let userCategories = window.tintcalPluginData.categories;
 
-  const dateAssignments = window.jcalendarPluginData?.assignments || {};
+  const dateAssignments = window.tintcalPluginData?.assignments || {};
   const colors = { ...userCategories };
 
   // ▼▼▼ ヘッダー描画のロジック ▼▼▼
@@ -175,10 +211,10 @@ async function drawCalendar() { // 1. async を追加
   calendarHead.innerHTML = ""; // ヘッダー行をクリア
 
   // 設定値を取得
-  const headerColor = jcalendarPluginData.headerColor || "#eeeeee";
-  const sundayColor = jcalendarPluginData.sundayColor || "#ffecec";
-  const saturdayColor = jcalendarPluginData.saturdayColor || "#ecf5ff";
-  const showHeaderColor = jcalendarPluginData.showHeaderWeekendColor == 1; // 新しい設定
+  const headerColor = tintcalPluginData.headerColor || "#eeeeee";
+  const sundayColor = tintcalPluginData.sundayColor || "#ffecec";
+  const saturdayColor = tintcalPluginData.saturdayColor || "#ecf5ff";
+  const showHeaderColor = tintcalPluginData.showHeaderWeekendColor == 1; // 新しい設定
 
   reorderedWeekdays.forEach(day => {
     const th = document.createElement("th");
@@ -222,10 +258,10 @@ monthYearEl.textContent = `${currentYear}年${currentMonth + 1}月`;
         cell.textContent = date;
         cell.setAttribute("data-date", key);
 
-        const sundayColor = jcalendarPluginData.sundayColor || "#ffecec";
-        const saturdayColor = jcalendarPluginData.saturdayColor || "#ecf5ff";
-        const showSunday = jcalendarPluginData.showSundayColor == 1; // 文字列'1'と数値1の両方に対応
-        const showSaturday = jcalendarPluginData.showSaturdayColor == 1;
+        const sundayColor = tintcalPluginData.sundayColor || "#ffecec";
+        const saturdayColor = tintcalPluginData.saturdayColor || "#ecf5ff";
+        const showSunday = tintcalPluginData.showSundayColor == 1; // 文字列'1'と数値1の両方に対応
+        const showSaturday = tintcalPluginData.showSaturdayColor == 1;
 
         const cellDate = new Date(currentYear, currentMonth, date);
         const dayOfWeek = cellDate.getDay();
@@ -241,10 +277,10 @@ monthYearEl.textContent = `${currentYear}年${currentMonth + 1}月`;
         let titleText = "";
 
         // 祝日であれば色を上書き（祝日が優先）
-        const enableHolidays = jcalendarPluginData.enableHolidays == 1;
-        const holidayColor = jcalendarPluginData.holidayColor || "#ffdddd";
+        const enableHolidays = tintcalPluginData.enableHolidays == 1;
+        const holidayColor = tintcalPluginData.holidayColor || "#ffdddd";
         // 3. ▼▼▼ 年ごとの箱から、今年の祝日データを取り出すように変更 ▼▼▼
-        const yearHolidays = jcalendarPluginData.holidays[currentYear] || {};
+        const yearHolidays = tintcalPluginData.holidays[currentYear] || {};
         if (enableHolidays && yearHolidays[key]) {
           cell.style.backgroundColor = holidayColor;
           titleText = yearHolidays[key];
@@ -265,7 +301,7 @@ monthYearEl.textContent = `${currentYear}年${currentMonth + 1}月`;
             .filter(cat => cat.visible !== false);
 
           //【絞り込み処理】表示が許可されたカテゴリのリストを取得
-          const visibleCategorySlugs = window.jcalendarPluginData?.visibleCategories;
+          const visibleCategorySlugs = window.tintcalPluginData?.visibleCategories;
 
           // リストが存在し、配列である場合のみ絞り込みを実行
           if (Array.isArray(visibleCategorySlugs)) {
@@ -305,41 +341,43 @@ monthYearEl.textContent = `${currentYear}年${currentMonth + 1}月`;
         }
 
         // 個別編集画面のプレビューか、WordPressのプレビュー画面ではクリックを無効にする
-        const previewWrapper = document.getElementById('jcal-individual-preview');
-        const isWpPreview = window.jcalendarPluginData?.isPreview === "1" || window.jcalendarPluginData?.isPreview === "true";
+        const previewWrapper = document.getElementById('tintcal-individual-preview');
+        const isWpPreview = window.tintcalPluginData?.isPreview === "1" || window.tintcalPluginData?.isPreview === "true";
 
         // 管理画面のプレビューでもなく、フロントのプレビュー画面でもない場合のみクリック可能にする
         if (!previewWrapper && !isWpPreview) {
           cell.addEventListener("click", () => {
             // カテゴリが登録されているかチェック
-            const categories = window.jcalendarPluginData?.categories || [];
+            const categories = window.tintcalPluginData?.categories || [];
             if (categories.length === 0) {
               // カテゴリがなければメッセージを表示して処理を中断
-              showTemporaryMessage("⚠️ まずは「カテゴリ追加・編集」でカテゴリを登録してください。", 3000);
+              showTemporaryMessage("⚠️ " + I18N.pleaseCreateCategory, 3000);
               return;
             }
             // 既存のポップアップがあれば削除する
-            const existingModal = document.querySelector(".jcal-assign-modal");
+            const existingModal = document.querySelector(".tintcal-assign-modal");
             if (existingModal) {
               existingModal.remove();
             }
-            // 複数選択UI（チェックボックス）: スラグ対応
+            // 単一選択UI（ラジオ）: スラグ対応（Single Category Product）
             const categoryList = document.createElement("div");
             const assigned = Array.isArray(dateAssignments[key]) ? dateAssignments[key] : (dateAssignments[key] ? [dateAssignments[key]] : []);
+            const preselect = assigned.length ? assigned[0] : null;
             userCategories.forEach(cat => {
               const label = document.createElement("label");
               label.style.display = "block";
-              const checkbox = document.createElement("input");
-              checkbox.type = "checkbox";
-              checkbox.value = cat.slug;
-              if (assigned.includes(cat.slug)) checkbox.checked = true;
-              label.appendChild(checkbox);
+              const radio = document.createElement("input");
+              radio.type = "radio";
+              radio.name = "tintcal-assign-one";
+              radio.value = cat.slug;
+              if (preselect === cat.slug) radio.checked = true;
+              label.appendChild(radio);
               label.appendChild(document.createTextNode(cat.name));
               categoryList.appendChild(label);
             });
 
             const modal = document.createElement("div");
-            modal.className = "jcal-assign-modal";
+            modal.className = "tintcal-assign-modal";
             modal.style.position = "absolute";
             modal.style.zIndex = 1000;
 
@@ -409,17 +447,18 @@ monthYearEl.textContent = `${currentYear}年${currentMonth + 1}月`;
               saveBtn.textContent = '保存中...';
 
               try {
-                const checkedSlugs = Array.from(categoryList.querySelectorAll("input[type=checkbox]:checked")).map(cb => cb.value);
+                const selected = categoryList.querySelector("input[type=radio]:checked");
+                const checkedSlugs = selected ? [selected.value] : [];
 
                 // シンプルなAjaxリクエストを直接実行
-                const response = await fetch(jcalendarPluginData.ajaxUrl, {
+                const response = await fetch(tintcalPluginData.ajaxUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded" },
                     body: new URLSearchParams({
-                        action: "save_jcalendar_assignment", // 1日分を保存するアクション
+                        action: "save_tintcal_assignment", // 1日分を保存するアクション
                         date: key, // key はポップアップ表示時に取得した日付
                         categories: JSON.stringify(checkedSlugs),
-                        _ajax_nonce: jcalendarPluginData.nonce,
+                        _ajax_nonce: tintcalPluginData.nonce,
                     }),
                 });
                 const result = await response.json();
@@ -427,9 +466,9 @@ monthYearEl.textContent = `${currentYear}年${currentMonth + 1}月`;
                 if (result.success && result.data) {
 
                     
-                    window.jcalendarPluginData.categories = result.data.categories;
+                    window.tintcalPluginData.categories = result.data.categories;
                                         
-                    window.jcalendarPluginData.assignments = result.data.assignments;
+                    window.tintcalPluginData.assignments = result.data.assignments;
 
                     // 最新のデータでUI全体を再描画
                     if (typeof window.drawCalendar === 'function') {
@@ -439,17 +478,17 @@ monthYearEl.textContent = `${currentYear}年${currentMonth + 1}月`;
                         window.renderCategoryTable();
                     }
 
-                    showTemporaryMessage("✅ 保存しました");
+                    showTemporaryMessage("✅ " + I18N.saved);
                     closeModal();
 
                 } else {
-                    alert(result.data?.message || "保存に失敗しました。");
+                    alert(result.data?.message || I18N.failedToSave);
                     saveBtn.disabled = false;
                     saveBtn.textContent = '保存';
                 }
               } catch (error) {
                   console.error("保存失敗（通信エラー）：", error);
-                  alert("保存に失敗しました。");
+                  alert(I18N.failedToSave);
                   saveBtn.disabled = false;
                   saveBtn.textContent = '保存';
               }
@@ -468,10 +507,10 @@ monthYearEl.textContent = `${currentYear}年${currentMonth + 1}月`;
 
 function renderLegend() {
   const container = document.querySelector(".calendar-legend");
-  if (!container || !window.jcalendarPluginData?.categories) return;
+  if (!container || !window.tintcalPluginData?.categories) return;
 
-  const categories = window.jcalendarPluginData.categories;
-  const isVisible = jcalendarPluginData?.showLegend == 1;
+  const categories = window.tintcalPluginData.categories;
+  const isVisible = tintcalPluginData?.showLegend == 1;
 
   if (!isVisible) {
     container.style.display = "none";
@@ -495,7 +534,7 @@ function renderLegend() {
 }
 
 function attachMonthNavigation() {
-    const calendarContainerInner = document.querySelector(".mjc-calendar-container-inner");
+    const calendarContainerInner = document.querySelector(".tintcal-calendar-container-inner");
     if (!calendarContainerInner) return;
 
     // 前月ボタンクリック（要素があれば）
@@ -543,6 +582,10 @@ function attachMonthNavigation() {
 // 初期化処理
 // =============================
 window.addEventListener("DOMContentLoaded", () => {
+  // 変数をここで初期化
+  const today = new Date();
+  currentYear = today.getFullYear();
+  currentMonth = today.getMonth();
 
     // ── URLパラメータに「import=success」または「import=error」があればポップアップ
     (function() {
@@ -551,20 +594,17 @@ window.addEventListener("DOMContentLoaded", () => {
       if (importStatus === "success") {
         // インポート成功時のメッセージ
         if (typeof showTemporaryMessage === "function") {
-          showTemporaryMessage("✅ カテゴリと日付データをインポートしました。");
+          showTemporaryMessage("✅ " + I18N.importSuccess);
         }
       } else if (importStatus === "error") {
         // インポート失敗時のメッセージ
         if (typeof showTemporaryMessage === "function") {
-          showTemporaryMessage("⚠️ インポートに失敗しました。JSONの形式を確認してください。");
+          showTemporaryMessage("⚠️ " + I18N.importError);
         }
       }
     })();
 
-  const today = new Date();
-  currentYear = today.getFullYear();
-  currentMonth = today.getMonth();
-  const enableHolidays = document.getElementById("jcalendar-enable-holidays")?.value === "1";
+  const enableHolidays = document.getElementById("tintcal-enable-holidays")?.value === "1";
   const legendToggle = document.getElementById("toggle-legend");
   if (legendToggle) {
     legendToggle.addEventListener("change", renderLegend);
@@ -579,7 +619,7 @@ window.addEventListener("DOMContentLoaded", () => {
   if (fileInput && importButton) {
     importButton.addEventListener("click", () => {
       if (fileInput.files.length === 0) {
-        alert("ファイルを選択してください。");
+        alert(I18N.pleaseSelectFile);
         return;
       }
 
@@ -608,17 +648,17 @@ document.addEventListener("DOMContentLoaded", function () {
   if (resetBtn) {
     // async を追加
     resetBtn.addEventListener("click", async () => {
-      if (!confirm("すべてのカレンダー日付割当を初期化します。よろしいですか？")) return;
+      if (!confirm(I18N.resetDatesConfirm)) return;
 
       try {
-        const response = await fetch(jcalendarPluginData.ajaxUrl, {
+        const response = await fetch(tintcalPluginData.ajaxUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded"
           },
           body: new URLSearchParams({
-            action: "reset_jcalendar_assignments",
-            _ajax_nonce: jcalendarPluginData.nonce
+            action: "reset_tintcal_assignments",
+            _ajax_nonce: tintcalPluginData.nonce
           })
         });
 
@@ -626,15 +666,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // サーバーでのリセットが成功した場合のみ、画面を更新
         if (json.success) {
-          window.jcalendarPluginData.assignments = {}; // JavaScript上のデータも空にする
+          window.tintcalPluginData.assignments = {}; // JavaScript上のデータも空にする
           drawCalendar(); // 空になったデータでカレンダーを再描画
-          alert("日付の割当を初期化しました");
+          alert(I18N.resetDatesOk);
         } else {
-          alert("初期化に失敗しました。");
+          alert(I18N.resetFailed);
         }
       } catch (err) {
         console.error("❌ 初期化エラー:", err);
-        alert("初期化中にエラーが発生しました。");
+        alert(I18N.resetError);
       }
     });
   }
@@ -643,17 +683,17 @@ document.addEventListener("DOMContentLoaded", function () {
   if (resetAllBtn) {
     // async を追加
     resetAllBtn.addEventListener("click", async () => {
-      if (!confirm("この操作は元に戻せません。本当に全データを初期化しますか？")) return;
+      if (!confirm(I18N.resetAllConfirm)) return;
 
       try {
-        const response = await fetch(jcalendarPluginData.ajaxUrl, {
+        const response = await fetch(tintcalPluginData.ajaxUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded"
           },
           body: new URLSearchParams({
-            action: "reset_jcalendar_all",
-            _ajax_nonce: jcalendarPluginData.nonce
+            action: "reset_tintcal_all",
+            _ajax_nonce: tintcalPluginData.nonce
           })
         });
 
@@ -661,8 +701,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // サーバーでのリセットが成功した場合のみ、画面を更新
         if (json.success) {
-          window.jcalendarPluginData.categories = [];
-          window.jcalendarPluginData.assignments = {};
+          window.tintcalPluginData.categories = [];
+          window.tintcalPluginData.assignments = {};
           
           // カテゴリリストとカレンダーの両方を再描画
           if (typeof renderCategoryTable === 'function') {
@@ -670,13 +710,13 @@ document.addEventListener("DOMContentLoaded", function () {
           }
           drawCalendar();
           
-          alert("全データを初期化しました");
+          alert(I18N.resetAllOk);
         } else {
-          alert("初期化に失敗しました。");
+          alert(I18N.resetFailed);
         }
       } catch (err) {
         console.error("❌ 全データ初期化エラー:", err);
-        alert("初期化中にエラーが発生しました。");
+        alert(I18N.resetError);
       }
     });
   }
@@ -687,31 +727,31 @@ document.addEventListener("DOMContentLoaded", function () {
     reloadBtn.addEventListener("click", async () => {
       // 処理中であることがわかるように、ボタンを一時的に無効化
       reloadBtn.disabled = true;
-      reloadBtn.textContent = "取得中...";
+      reloadBtn.textContent = I18N.loading;
 
       try {
-        const response = await fetch(jcalendarPluginData.ajaxUrl, {
+        const response = await fetch(tintcalPluginData.ajaxUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded"
           },
           body: new URLSearchParams({
-            action: "reload_jcalendar_holidays",
-            _ajax_nonce: jcalendarPluginData.nonce
+            action: "reload_tintcal_holidays",
+            _ajax_nonce: tintcalPluginData.nonce
           })
         });
         const json = await response.json();
 
         if (json.success) {
           const results = json.data.results;
-          let messages = ["<strong>祝日データの更新が完了しました。</strong>"];
+          let messages = [ I18N.holidayUpdatedHeader ];
 
           // 年ごとの結果をチェックしてメッセージを作成
           for (const year in results) {
             if (results[year].success) {
-              messages.push(`✅ ${year}年: 更新しました。`);
+              messages.push(I18N.yearUpdated(year));
             } else {
-              messages.push(`❌ ${year}年: 失敗しました (${results[year].error})`);
+              messages.push(I18N.yearFailed(year, results[year].error));
             }
           }
           
@@ -719,19 +759,19 @@ document.addEventListener("DOMContentLoaded", function () {
           showTemporaryMessage(messages.join("<br>"), 5000);
 
           // 1. PHPから受け取った最新の祝日データで、JavaScript上のデータを更新
-          window.jcalendarPluginData.holidays = json.data.holidays;
+          window.tintcalPluginData.holidays = json.data.holidays;
           // 2. 新しいデータでカレンダーを再描画
           await drawCalendar();
         } else {
-          alert("祝日データの再取得に失敗しました。");
+          alert(I18N.fetchHolidayFailed);
         }
       } catch (err) {
         console.error("❌ 祝日再取得エラー:", err);
-        alert("祝日再取得中にエラーが発生しました。");
+        alert(I18N.fetchHolidayError);
       } finally {
         // 処理が終わったらボタンを元に戻す
         reloadBtn.disabled = false;
-        reloadBtn.textContent = "祝日データを再取得";
+        reloadBtn.textContent = I18N.reloadHoliday;
       }
     });
   }
@@ -747,6 +787,9 @@ async function initializeCalendarEditor() {
     currentMonth = today.getMonth();
 
     await drawCalendar(); // await を追加
+    if (typeof window.renderCategoryTable === 'function') {
+        window.renderCategoryTable();
+    }
     attachMonthNavigation();
 }
 

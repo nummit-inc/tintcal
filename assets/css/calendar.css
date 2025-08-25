@@ -1,25 +1,25 @@
 /* calendar.css - J-Calendar Plugin Style */
 
-.mjc-calendar-container {
+.tintcal-calendar-container {
   max-width: 500px;
   margin: 20px auto;
   font-family: sans-serif;
 }
 
-.mjc-calendar-controls {
+.tintcal-calendar-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
 }
 
-.mjc-calendar {
+.tintcal-calendar {
   width: 100%;
   border-collapse: collapse;
 }
 
-.mjc-calendar th,
-.mjc-calendar td {
+.tintcal-calendar th,
+.tintcal-calendar td {
   border: 1px solid #ccc;
   width: 14.28%;
   height: 50px;
@@ -27,17 +27,17 @@
   vertical-align: middle;
 }
 
-.mjc-calendar td {
+.tintcal-calendar td {
   background-color: #fff;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
-.mjc-calendar td:hover {
+.tintcal-calendar td:hover {
   background-color: #f0f0f0;
 }
 
-.mjc-calendar td[title] {
+.tintcal-calendar td[title] {
   font-weight: bold;
   color: #333;
 }
@@ -45,26 +45,26 @@
 /* ------------------------------
  * 管理画面タブUI用スタイル
  * ------------------------------ */
-.jcal-tab-content {
+.tintcal-tab-content {
   display: none;
 }
-.jcal-tab-content.active {
+.tintcal-tab-content.active {
   display: block;
 }
 
 /* ------------------------------
  * 基本設定タブのレイアウト
  * ------------------------------ */
-.jcal-settings-container {
+.tintcal-settings-container {
   display: flex;
   gap: 30px;
   flex-wrap: wrap;
 }
-.jcal-settings-form {
+.tintcal-settings-form {
   flex: 2;
   min-width: 350px;
 }
-.jcal-settings-demo {
+.tintcal-settings-demo {
   flex: 1;
   min-width: 280px;
   padding: 20px;
@@ -76,38 +76,38 @@
 /* ------------------------------
  * デモカレンダーのスタイル
  * ------------------------------ */
-.jcal-demo-calendar {
+.tintcal-demo-calendar {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   border-left: 1px solid #ccc;
   border-top: 1px solid #ccc;
   font-size: 12px;
 }
-.jcal-demo-header, .jcal-demo-cell {
+.tintcal-demo-header, .tintcal-demo-cell {
   padding: 8px 4px;
   text-align: center;
   border-right: 1px solid #ccc;
   border-bottom: 1px solid #ccc;
   background: #fff;
 }
-.jcal-demo-header {
+.tintcal-demo-header {
   font-weight: bold;
   background-color: #eeeeee;
 }
-.jcal-demo-saturday {
+.tintcal-demo-saturday {
   background-color: #ecf5ff;
 }
-.jcal-demo-sunday {
+.tintcal-demo-sunday {
   background-color: #ffecec;
 }
-.jcal-demo-holiday {
+.tintcal-demo-holiday {
   background-color: #ffdddd;
 }
 
 /* ------------------------------
  * カテゴリ追加フォームのスタイル
  * ------------------------------ */
-.jcal-category-add-form {
+.tintcal-category-add-form {
   margin-top: 15px;
   padding-top: 15px;
   border-top: 1px solid #ddd;
@@ -116,19 +116,19 @@
 /* ------------------------------
  * デモカレンダーの曜日順序変更用
  * ------------------------------ */
-.jcal-demo-calendar.jcal-start-on-monday .jcal-demo-header[data-day="sun"] {
+.tintcal-demo-calendar.tintcal-start-on-monday .tintcal-demo-header[data-day="sun"] {
   order: 7; /* 月曜始まりのとき、日曜の表示順を7番目にする */
 }
 
 /* 月送りコントロールの中央部分を寄せるためのスタイル */
-.mjc-calendar-controls .mjc-month-year {
+.tintcal-calendar-controls .tintcal-month-year {
   margin-left: auto;
 }
 
 /* =============================
  * カテゴリ割り当てポップアップのスタイル
  * ============================= */
-.jcal-assign-modal {
+.tintcal-assign-modal {
   background-color: #fff;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -138,19 +138,19 @@
 }
 
 /* ポップアップ内の各カテゴリ行（ラベル） */
-.jcal-assign-modal label {
+.tintcal-assign-modal label {
   display: block;
   margin-bottom: 8px;
   cursor: pointer;
 }
 
 /* 最後のラベルの下には余白をつけない */
-.jcal-assign-modal label:last-child {
+.tintcal-assign-modal label:last-child {
   margin-bottom: 0;
 }
 
 /* ボタンを囲むラッパー要素のスタイル */
-.jcal-assign-modal .button-wrapper {
+.tintcal-assign-modal .button-wrapper {
   margin-top: 15px;
   display: flex;
   gap: 8px;
@@ -159,20 +159,20 @@
 /* =============================
  * 権限設定テーブルのスタイル
  * ============================= */
-.jcal-permissions-table {
+.tintcal-permissions-table {
   border-collapse: collapse;
   margin-top: 1em;
 }
-.jcal-permissions-table th,
-.jcal-permissions-table td {
+.tintcal-permissions-table th,
+.tintcal-permissions-table td {
   border: 1px solid #c8c8c8;
   padding: 12px;
 }
-.jcal-permissions-table th[scope="col"] {
+.tintcal-permissions-table th[scope="col"] {
   background-color: #f5f5f5;
 }
 
-.jcal-pro-disabled {
+.tintcal-pro-disabled {
   opacity: 0.5;
   pointer-events: none;
 }
@@ -180,7 +180,7 @@
 /* =============================
  * 個別カレンダーへのショートカット
  * ============================= */
-.jcal-shortcuts-section {
+.tintcal-shortcuts-section {
   margin-top: 40px;
   padding: 1px 20px 10px;
   border: 1px solid #c8c8c8;
@@ -188,18 +188,18 @@
   background-color: #fff;
   margin-right: 20px;
 }
-.jcal-shortcuts-section h3 {
+.tintcal-shortcuts-section h3 {
   font-size: 16px;
   border-bottom: 1px solid #ddd;
   padding-bottom: 10px;
   margin-bottom: 15px;
 }
-.jcal-shortcuts-section ul {
+.tintcal-shortcuts-section ul {
   margin: 0;
   list-style-type: disc;
   padding-left: 25px;
 }
-.jcal-shortcuts-section li {
+.tintcal-shortcuts-section li {
   margin-bottom: 8px;
 }
 

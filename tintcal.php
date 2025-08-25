@@ -1,9 +1,10 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 /*
 Plugin Name:      TintCal
 Plugin URI:       https://tintcal.com
 Description:      「定休日」や「イベント日」といった予定を自由に設定し、日付をカラフルに色分け。日本の祝日にも対応した、見た目がわかりやすいオリジナルカレンダーを作成できます。
-Version:          2.1
+Version:          2.2.2
 Requires at least: 5.8
 Requires PHP:     7.4
 Author:           QuantaLumina
@@ -14,162 +15,19 @@ Text Domain:      tintcal
 Domain Path:      /languages
 */
 
-// =============================
-// JWT検証用関数（RS256, PHP標準のみ）
-// =============================
-function jcalendar_verify_jwt_rs256($jwt, $public_key_path) {
-    $parts = explode('.', $jwt);
-    if (count($parts) !== 3) return false;
-    list($header_b64, $payload_b64, $signature_b64) = $parts;
-    $header = json_decode(base64url_decode($header_b64), true);
-    $payload = json_decode(base64url_decode($payload_b64), true);
-    $signature = base64url_decode($signature_b64);
-    $data = $header_b64 . '.' . $payload_b64;
-    $public_key = file_get_contents($public_key_path);
-    $verified = openssl_verify($data, $signature, $public_key, OPENSSL_ALGO_SHA256);
-    if ($verified === 1) {
-        return $payload;
-    } else {
-        return false;
-    }
-}
-function base64url_decode($data) {
-    $remainder = strlen($data) % 4;
-    if ($remainder) {
-        $padlen = 4 - $remainder;
-        $data .= str_repeat('=', $padlen);
-    }
-    return base64_decode(strtr($data, '-_', '+/'));
-}
 
-// =============================
-// ライセンス認証・JWT検証・キャッシュ
-// =============================
-function jcalendar_get_license_status() {
-    $transient_key = 'jcalendar_license_jwt';
-    $jwt = get_transient($transient_key);
-    $public_key_path = plugin_dir_path(__FILE__) . 'assets/license/public_key.pem';
-    $license_key = get_option('jcalendar_license_key', '');
-    $site_url = home_url();
-
-    // キャッシュがなければAPIリクエスト
-    if (!$jwt && $license_key) {
-        $jwt = jcalendar_request_jwt_from_server($license_key, $site_url);
-        if ($jwt) {
-            set_transient($transient_key, $jwt, 24 * HOUR_IN_SECONDS);
-        }
-    }
-    if ($jwt) {
-
-        // ★追加：公開鍵の存在チェック
-        if (!file_exists($public_key_path)) {
-            return false;
-        }
-
-        $payload = jcalendar_verify_jwt_rs256($jwt, $public_key_path);
+define('TINTCAL_VERSION', '2.2.2');
 
 
-        // 有効期限チェック
-        if ($payload && isset($payload['exp']) && $payload['exp'] > time()) {
-            return $payload;
-        } else {
-            // 期限切れや不正ならキャッシュ削除
-            delete_transient($transient_key);
-        }
-    }
-    return false;
-}
 
-function jcalendar_request_jwt_from_server($license_key, $site_url) {
+$tintcal_includes_path = plugin_dir_path(__FILE__) . 'includes/';
 
-    $endpoint = 'https://jp-calendar-license-185317068700.asia-northeast1.run.app/verify'; // ←本番URLに差し替え
-    $body = [
-        'license_key' => $license_key,
-        'site_url' => $site_url
-    ];
-
-
-    $response = wp_remote_post($endpoint, [
-        'timeout' => 10,
-        'headers' => ['Content-Type' => 'application/json'],
-        'body' => json_encode($body)
-    ]);
-
-    // is_wp_error() で通信自体が失敗したかチェック
-    if (is_wp_error($response)) {
-        return false;
-    }
-
-    // デバッグ：サーバーからの応答をログに出力
-    $code = wp_remote_retrieve_response_code($response);
-    $data = wp_remote_retrieve_body($response);
-
-    if ($code === 200 && !empty($data)) {
-        $json = json_decode($data, true);
-        if (isset($json['jwt'])) {
-            return $json['jwt'];
-        } elseif (is_string($data) && strpos($data, '.') !== false) {
-            // JWTのみ返す場合
-            return $data;
-        }
-    }
-    return false;
-}
-
-function jcalendar_is_license_valid() {
-    $payload = jcalendar_get_license_status();
-    
-    // 1. payload自体が存在するか
-    // 2. statusが 'active' であるか
-    // 3. 有効期限(exp)が未来であるか
-    // この3つすべてを満たす場合のみ「有効」と判断する
-    return (
-        $payload &&
-        isset($payload['status']) && $payload['status'] === 'active' &&
-        isset($payload['exp']) && $payload['exp'] > time()
-    );
-}
-
-/**
- * 表示用のカテゴリリストを取得・整理して返すヘルパー関数
- * - DBからカテゴリを取得
- * - order順にソート
- * - ライセンスが無効なら1つに絞り込む
- * @return array 整頓済みのカテゴリ配列
- */
-function jcalendar_get_displayable_categories() {
-    // 1. DBからカテゴリを取得
-    $categories = get_option('jcalendar_categories', []);
-    if (!is_array($categories)) {
-        return [];
-    }
-
-    // 2. orderプロパティを基準にカテゴリを昇順で並び替える
-    usort($categories, function($a, $b) {
-        $order_a = isset($a['order']) ? (int)$a['order'] : 0;
-        $order_b = isset($b['order']) ? (int)$b['order'] : 0;
-        return $order_a <=> $order_b;
-    });
-
-    // 3. ライセンスが無効な場合、リストを先頭の1つだけに絞り込む
-    if (!jcalendar_is_license_valid()) {
-        $categories = array_slice($categories, 0, 1);
-    }
-
-    // 4. 最終的に整頓されたカテゴリリストを返す
-    return $categories;
-}
-
-define('JCALENDAR_VERSION', '2.1'); //
-
-$includes_path = plugin_dir_path(__FILE__) . 'includes/';
-
-require_once $includes_path . 'admin-menu-jcalendar.php';
-require_once $includes_path . 'meta-box-jcalendar.php';
-require_once $includes_path . 'save-meta-jcalendar.php';
-require_once $includes_path . 'list-view-jcalendar.php';
-require_once $includes_path . 'post-type-jcalendar.php';
-require_once $includes_path . 'shortcode-frontend-jcalendar.php';
+require_once $tintcal_includes_path . 'admin-menu-tintcal.php';
+require_once $tintcal_includes_path . 'meta-box-tintcal.php';
+require_once $tintcal_includes_path . 'save-meta-tintcal.php';
+require_once $tintcal_includes_path . 'list-view-tintcal.php';
+require_once $tintcal_includes_path . 'post-type-tintcal.php';
+require_once $tintcal_includes_path . 'shortcode-frontend-tintcal.php';
 
 
 // =============================
@@ -179,28 +37,28 @@ require_once $includes_path . 'shortcode-frontend-jcalendar.php';
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- This is a display logic based on GET param, not processing form data.
 if (isset($_GET['updated']) && $_GET['updated'] == 1) {
   add_action('admin_notices', function () {
-    echo '<div class="notice notice-success is-dismissible"><p>設定を保存しました。</p></div>';
+    echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( '設定を保存しました。', 'tintcal' ) . '</p></div>';
   });
 }
 
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- This is a display logic based on GET param, not processing form data.
 if (isset($_GET['import']) && $_GET['import'] === 'success') {
   add_action('admin_notices', function () {
-    echo '<div class="notice notice-success is-dismissible"><p>✅ カテゴリと日付データをインポートしました。</p></div>';
+    echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'カテゴリと日付データをインポートしました。', 'tintcal' ) . '</p></div>';
   });
 }
 
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- This is a display logic based on GET param, not processing form data.
 if (isset($_GET['import']) && $_GET['import'] === 'error') {
   add_action('admin_notices', function () {
-    echo '<div class="notice notice-error is-dismissible"><p>⚠️ インポートファイルの形式が不正です。</p></div>';
+    echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'インポートファイルの形式が不正です。', 'tintcal' ) . '</p></div>';
   });
 }
 
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- This is a display logic based on GET param, not processing form data.
-if (isset($_GET['jcal_updated']) && $_GET['jcal_updated'] == 1) {
+if (isset($_GET['tintcal_updated']) && $_GET['tintcal_updated'] == 1) {
   add_action('admin_notices', function () {
-    echo '<div class="notice notice-success is-dismissible"><p>設定を保存しました。</p></div>';
+    echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( '設定を保存しました。', 'tintcal' ) . '</p></div>';
   });
 }
 
@@ -208,72 +66,16 @@ if (isset($_GET['jcal_updated']) && $_GET['jcal_updated'] == 1) {
  * プラグイン設定ページ（ライセンス・ロール権限）の保存・解除処理
  */
 add_action('admin_init', function() {
-    // --- ライセンスキーの保存処理 ---
-    if (isset($_POST['jcalendar_save_license_settings'])) {
-        check_admin_referer('jcalendar_license_settings_nonce');
-        if (!current_user_can('manage_options')) {
-            wp_die('この操作を行う権限がありません。');
-        }
-        $license_key = '';
-        if (isset($_POST['jcalendar_license_key'])) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce check is performed above.
-            // phpcs:ignore WordPress.Security.ValidatedInput.InputNotValidated, WordPress.Security.ValidatedInput.InputNotSanitized -- Sanitization is handled by sanitize_text_field.
-            $license_key = sanitize_text_field(wp_unslash($_POST['jcalendar_license_key']));
-        }
-        update_option('jcalendar_license_key', $license_key);
-        delete_transient('jcalendar_license_jwt');
-        wp_safe_redirect(admin_url('admin.php?page=jcalendar-config&jcal_updated=1'));
-        exit;
-    }
-
-    // --- ライセンスの解除処理（修正版） ---
-    if (isset($_POST['jcalendar_deactivate_license'])) {
-        check_admin_referer('jcalendar_license_settings_nonce');
-        if (!current_user_can('manage_options')) {
-            wp_die('この操作を行う権限がありません。');
-        }
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce check is performed above.
-        // phpcs:ignore WordPress.Security.ValidatedInput.InputNotValidated, WordPress.Security.ValidatedInput.InputNotSanitized -- No direct user input is processed here that requires sanitization.
-        // (このブロック内の $_POST は主に内部処理に使われるため、追加のサニタイズは不要だが、CodeSniffer抑制のためコメントを追加)
-        // ステップ1: サーバーにディアクティベート通知を送る
-        $jwt = get_transient('jcalendar_license_jwt');
-        if ($jwt) {
-            $endpoint = 'https://jp-calendar-license-185317068700.asia-northeast1.run.app/deactivate'; // 解除用エンドポイント
-            $response = wp_remote_post($endpoint, [
-                'timeout' => 10,
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $jwt,
-                ],
-            ]);
-
-            // デバッグログでサーバーからの応答を確認
-            if (is_wp_error($response)) {
-            } else {
-                $code = wp_remote_retrieve_response_code($response);
-                $body = wp_remote_retrieve_body($response);
-            }
-        } else {
-        }
-
-        // ステップ2: ローカルのライセンス情報を削除（サーバーへの通知成否に関わらず実行）
-        delete_option('jcalendar_license_key');
-        delete_transient('jcalendar_license_jwt');
-
-        // ステップ3: ページをリロード
-        wp_safe_redirect(admin_url('admin.php?page=jcalendar-config&jcal_updated=1'));
-        exit;
-    }
     
     // --- ロール権限設定の保存処理 ---
-    if (isset($_POST['action']) && $_POST['action'] === 'jcalendar_save_role_settings') {
-        check_admin_referer('jcalendar_role_settings_nonce');
+    if (isset($_POST['action']) && $_POST['action'] === 'tintcal_save_role_settings') {
+        check_admin_referer('tintcal_role_settings_nonce');
         if (!current_user_can('manage_options')) {
-            wp_die('権限がありません。');
+            wp_die( esc_html__( '権限がありません。', 'tintcal' ) );
         }
         $permissions = [];
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce check is performed above.
-        if (isset($_POST['permissions'])) {
-            // この行で発生する警告を、理由を明記して無視します。
+        if (isset($_POST['permissions']) && is_array($_POST['permissions'])) {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
             $permissions = wp_unslash($_POST['permissions']);
         }
@@ -289,44 +91,68 @@ add_action('admin_init', function() {
                 'manage_calendars'       => isset($caps['manage_calendars']) ? (bool) $caps['manage_calendars'] : false, // (bool) でキャスト
             ];
         }
-        update_option('jcalendar_role_permissions', $sanitized_permissions);
+        update_option('tintcal_role_permissions', $sanitized_permissions);
 
         // WordPressの権限システムに実際のcapabilityを登録/削除する
         $role = get_role('editor');
         if ($role) {
             // カレンダー投稿タイプを管理するために必要なWordPressのcapabilityのリスト
-            $jcal_caps = [
-                'edit_jcalendar',
-                'read_jcalendar',
-                'delete_jcalendar',
-                'edit_jcalendars',
-                'edit_others_jcalendars',
-                'publish_jcalendars',
-                'read_private_jcalendars',
-                'delete_jcalendars',
-                'delete_private_jcalendars',
-                'delete_published_jcalendars',
-                'delete_others_jcalendars',
-                'edit_private_jcalendars',
-                'edit_published_jcalendars',
+            $tintcal_caps = [
+                'edit_tintcal',
+                'read_tintcal',
+                'delete_tintcal',
+                'edit_tintcals',
+                'edit_others_tintcals',
+                'publish_tintcals',
+                'read_private_tintcals',
+                'delete_tintcals',
+                'delete_private_tintcals',
+                'delete_published_tintcals',
+                'delete_others_tintcals',
+                'edit_private_tintcals',
+                'edit_published_tintcals',
             ];
 
             // 「個別カレンダー編集の管理」のチェック状態に応じて権限を付与または削除
             if (!empty($sanitized_permissions['editor']['manage_calendars'])) {
-                foreach ($jcal_caps as $cap) {
+                foreach ($tintcal_caps as $cap) {
                     $role->add_cap($cap);
                 }
             } else {
-                foreach ($jcal_caps as $cap) {
+                foreach ($tintcal_caps as $cap) {
                     $role->remove_cap($cap);
                 }
             }
         }
 
-        wp_safe_redirect(admin_url('admin.php?page=jcalendar-config&jcal_updated=1'));
+        wp_safe_redirect(admin_url('admin.php?page=tintcal-config&tintcal_updated=1'));
         exit;
     }
 });
+
+/**
+ * 表示用のカテゴリリストを取得・整理して返すヘルパー関数
+ * - DBからカテゴリを取得
+ * - order順にソート
+ * @return array 整頓済みのカテゴリ配列
+ */
+function tintcal_get_displayable_categories() {
+    // 1. DBからカテゴリを取得
+    $categories = get_option('tintcal_categories', []);
+    if (!is_array($categories)) {
+        return [];
+    }
+
+    // 2. orderプロパティを基準にカテゴリを昇順で並び替える
+    usort($categories, function($a, $b) {
+        $order_a = isset($a['order']) ? (int)$a['order'] : 0;
+        $order_b = isset($b['order']) ? (int)$b['order'] : 0;
+        return $order_a <=> $order_b;
+    });
+
+    // 3. 最終的に整頓されたカテゴリリストを返す
+    return $categories;
+}
 
 // =============================
 // 管理画面 設定ページの描画
@@ -335,15 +161,15 @@ add_action('admin_init', function() {
 /**
  * 個別カレンダー設定画面のレンダリングと保存処理
  */
-function jcalendar_render_preference_page() {
+function tintcal_render_preference_page() {
     
-    // 必要なら管理者権限だけチェック
-    if ( ! jcalendar_current_user_can_access('manage_common_settings') ) {
-        wp_die('このページにアクセスする権限がありません。');
+    // 権限チェックを修正
+    if ( ! current_user_can('edit_posts') ) {
+        wp_die( esc_html__( 'このページにアクセスする権限がありません。', 'tintcal' ) );
     }
 
     // --- [UUID slug migration] 既存カテゴリ全件にslugフィールド付与 ---
-    $categories = get_option('jcalendar_categories', []);
+    $categories = get_option('tintcal_categories', []);
     $modified = false;
     foreach ($categories as &$cat) {
         if (empty($cat['slug'])) {
@@ -354,40 +180,38 @@ function jcalendar_render_preference_page() {
     }
     unset($cat);
     if ($modified) {
-        update_option('jcalendar_categories', $categories);
+        update_option('tintcal_categories', $categories);
     }
 
     // 設定保存処理
-    if ( isset($_POST['jcalendar_save_settings']) && check_admin_referer('jcalendar_settings_nonce') ) {
+    if ( isset($_POST['tintcal_save_settings']) && check_admin_referer('tintcal_settings_nonce') ) {
         // カラー以外の設定は、ライセンス状況に関わらず常に保存する
         // Nonce と権限チェックは既にされているため、ここではサニタイズとスラッシュ除去に集中
-        update_option('jcalendar_start_day', isset($_POST['start_day']) ? sanitize_text_field(wp_unslash($_POST['start_day'])) : 'sunday');
-        update_option('jcalendar_enable_holidays', isset($_POST['enable_holidays']) ? 1 : 0); // この行は既に isset があるので OK
-        update_option('jcalendar_show_sunday_color', isset($_POST['show_sunday_color']) ? 1 : 0);
-        update_option('jcalendar_show_saturday_color', isset($_POST['show_saturday_color']) ? 1 : 0);
-        update_option('jcalendar_show_legend', isset($_POST['show_legend']) ? 1 : 0);
-        update_option('jcal_show_header_weekend_color', isset($_POST['jcal_show_header_weekend_color']) ? 1 : 0);
-        update_option('jcal_show_today_button', isset($_POST['jcal_show_today_button']) ? 1 : 0);
+        update_option('tintcal_start_day', isset($_POST['start_day']) ? sanitize_text_field(wp_unslash($_POST['start_day'])) : 'sunday');
+        update_option('tintcal_enable_holidays', isset($_POST['enable_holidays']) ? 1 : 0); // この行は既に isset があるので OK
+        update_option('tintcal_show_sunday_color', isset($_POST['show_sunday_color']) ? 1 : 0);
+        update_option('tintcal_show_saturday_color', isset($_POST['show_saturday_color']) ? 1 : 0);
+        update_option('tintcal_show_legend', isset($_POST['show_legend']) ? 1 : 0);
+        update_option('tintcal_show_header_weekend_color', isset($_POST['tintcal_show_header_weekend_color']) ? 1 : 0);
+        update_option('tintcal_show_today_button', isset($_POST['tintcal_show_today_button']) ? 1 : 0);
 
-        // カラー設定は、Pro版ユーザーの場合のみ保存する
-        if (jcalendar_is_license_valid()) {
-            update_option('jcalendar_header_color', isset($_POST['header_color']) ? sanitize_hex_color(wp_unslash($_POST['header_color'])) : '#eeeeee');
-            update_option('jcalendar_holiday_color', isset($_POST['holiday_color']) ? sanitize_hex_color(wp_unslash($_POST['holiday_color'])) : '#ffdddd');
-            update_option('jcalendar_sunday_color', isset($_POST['sunday_color']) ? sanitize_hex_color(wp_unslash($_POST['sunday_color'])) : '#ffecec');
-            update_option('jcalendar_saturday_color', isset($_POST['saturday_color']) ? sanitize_hex_color(wp_unslash($_POST['saturday_color'])) : '#ecf5ff');
-        }
+        // カラー設定を常に保存する
+        update_option('tintcal_header_color', isset($_POST['header_color']) ? sanitize_hex_color(wp_unslash($_POST['header_color'])) : '#eeeeee');
+        update_option('tintcal_holiday_color', isset($_POST['holiday_color']) ? sanitize_hex_color(wp_unslash($_POST['holiday_color'])) : '#ffdddd');
+        update_option('tintcal_sunday_color', isset($_POST['sunday_color']) ? sanitize_hex_color(wp_unslash($_POST['sunday_color'])) : '#ffecec');
+        update_option('tintcal_saturday_color', isset($_POST['saturday_color']) ? sanitize_hex_color(wp_unslash($_POST['saturday_color'])) : '#ecf5ff');
         
-        add_settings_error('jcalendar_messages', 'saved', '設定を保存しました。', 'updated');
+        add_settings_error('tintcal_messages', 'saved', esc_html__('設定を保存しました。', 'tintcal'), 'updated');
         // 保存後は同じ個別設定ページにリダイレクト
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce check is performed above.
         $active_tab = isset($_POST['active_tab']) ? sanitize_text_field(wp_unslash($_POST['active_tab'])) : '';
-        wp_safe_redirect(admin_url('admin.php?page=jcalendar-preference&updated=1' . (!empty($active_tab) ? '&hash=' . urlencode($active_tab) : '')));
+        wp_safe_redirect(admin_url('admin.php?page=tintcal-preference&updated=1' . (!empty($active_tab) ? '&hash=' . urlencode($active_tab) : '')));
         exit;
     }
 
     // 設定画面の表示
-    global $includes_path;
-    include $includes_path . 'preference-view-jcalendar.php';
+    global $tintcal_includes_path;
+    include $tintcal_includes_path . 'preference-view-tintcal.php';
 }
 
 /**
@@ -396,7 +220,7 @@ function jcalendar_render_preference_page() {
  * @param int|null $post_id カレンダー投稿のID（新規作成や一括設定画面ではnull）
  * @return array JavaScriptに渡す設定データの連想配列
  */
-function jcalendar_build_js_data_for_admin($post_id = null) {
+function tintcal_build_js_data_for_admin($post_id = null) {
     $js_data = [];
     $setting_keys = [
         'startDay'               => ['type' => 'string', 'default' => 'sunday'],
@@ -408,15 +232,15 @@ function jcalendar_build_js_data_for_admin($post_id = null) {
         'showSaturdayColor'      => ['type' => 'bool',   'default' => 1],
         'enableHolidays'         => ['type' => 'bool',   'default' => 1],
         'showLegend'             => ['type' => 'bool',   'default' => 1],
-        'showHeaderWeekendColor' => ['type' => 'bool',   'default' => 1, 'option_key' => 'jcal_show_header_weekend_color'],
-        'showTodayButton'        => ['type' => 'bool',   'default' => 1, 'option_key' => 'jcal_show_today_button'],
+        'showHeaderWeekendColor' => ['type' => 'bool',   'default' => 1, 'option_key' => 'tintcal_show_header_weekend_color'],
+        'showTodayButton'        => ['type' => 'bool',   'default' => 1, 'option_key' => 'tintcal_show_today_button'],
     ];
 
     if ($post_id) {
         // 【編集画面の場合】
         foreach ($setting_keys as $js_key => $props) {
             // DB上のキー名を生成
-            $option_key = isset($props['option_key']) ? $props['option_key'] : 'jcalendar_' . strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $js_key));
+            $option_key = isset($props['option_key']) ? $props['option_key'] : 'tintcal_' . strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $js_key));
             $meta_key   = '_' . $option_key;
 
             $meta_value = get_post_meta($post_id, $meta_key, true);
@@ -430,8 +254,8 @@ function jcalendar_build_js_data_for_admin($post_id = null) {
                 $js_data[$js_key] = get_option($option_key, $props['default']);
             }
         }
-        // _jcalendar_visible_categories を取得し、配列であることを保証する
-        $visible_slugs_from_meta = get_post_meta($post_id, '_jcalendar_visible_categories', false); // falseに変更済み
+        // _tintcal_visible_categories を取得し、配列であることを保証する
+        $visible_slugs_from_meta = get_post_meta($post_id, '_tintcal_visible_categories', false); // falseに変更済み
         $visible_slugs_current = []; // まず空で初期化
         if (is_array($visible_slugs_from_meta)) {
             // 取得した配列がさらに配列を内包している場合があるので、すべてを1次元配列にフラット化する
@@ -444,24 +268,24 @@ function jcalendar_build_js_data_for_admin($post_id = null) {
             }
         }
 
-        // 初回投稿（auto-draft）の場合、または無料版で個別設定が空の場合、共通設定の「表示ON」カテゴリを初期値とする
         $is_auto_draft = (get_post($post_id)->post_status === 'auto-draft');
         
-        if ($is_auto_draft || (empty($visible_slugs_current) && !jcalendar_is_license_valid())) {
-            $all_categories = get_option('jcalendar_categories', []);
+        if ($is_auto_draft) {
+            // 新規投稿の場合は、共通設定の「表示ON」カテゴリを初期値とする
+            $all_categories = get_option('tintcal_categories', []);
             $visible_in_main_settings = array_filter($all_categories, function($cat) { return ($cat['visible'] ?? true); });
             $js_data['visibleCategories'] = array_values(wp_list_pluck($visible_in_main_settings, 'slug'));
         } else {
-            // 既存投稿の場合や、Pro版で明示的に空配列が保存された場合
+            // 既存投稿の場合は、DBの値を正とする
             $js_data['visibleCategories'] = $visible_slugs_current;
         }
     } else {
         // 【新規作成画面 or 一括設定画面の場合】
         foreach ($setting_keys as $js_key => $props) {
-            $option_key = $props['option_key'] ?? 'jcalendar_' . strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $js_key));
+            $option_key = $props['option_key'] ?? 'tintcal_' . strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $js_key));
             $js_data[$js_key] = get_option($option_key, $props['default']);
         }
-        $all_categories = get_option('jcalendar_categories', []);
+        $all_categories = get_option('tintcal_categories', []);
         $visible_in_main_settings = array_filter($all_categories, function($cat) { return $cat['visible'] ?? true; });
         $js_data['visibleCategories'] = array_values(wp_list_pluck($visible_in_main_settings, 'slug'));
     }
@@ -469,20 +293,23 @@ function jcalendar_build_js_data_for_admin($post_id = null) {
     // 全ての管理画面で共通して渡すデータ
     $js_data['pluginUrl']   = plugin_dir_url(__FILE__);
     $js_data['ajaxUrl']     = admin_url('admin-ajax.php');
-    $js_data['nonce']       = wp_create_nonce('jcalendar_settings_nonce');
-    $js_data['categories'] = jcalendar_get_displayable_categories();
-    $js_data['assignments'] = json_decode(get_option('jcalendar_date_categories', '{}'), true) ?: [];
+    $js_data['nonce']       = wp_create_nonce('tintcal_settings_nonce');
+    $js_data['categories'] = tintcal_get_displayable_categories();
+    $js_data['assignments'] = json_decode(get_option('tintcal_date_categories', '{}'), true) ?: [];
     
     // 祝日データを年ごとに読み込む
     $holidays_by_year = [];
     $current_year = (int)date_i18n('Y');
     $years_to_load = [$current_year, $current_year + 1, $current_year + 2];
     $locale = 'ja';
+    $upload_dir = wp_upload_dir();
+    $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
+
     foreach ($years_to_load as $year) {
-        $file_path = plugin_dir_path(__FILE__) . "assets/holidays/{$locale}/{$year}.json";
+        $file_path = "{$tintcal_dir}/{$locale}/{$year}.json";
         if (file_exists($file_path)) {
-            $json_content = @file_get_contents($file_path);
-            if ($json_content) {
+            $json_content = file_get_contents($file_path);
+            if ($json_content !== false) {
                 $holiday_data = json_decode($json_content, true);
                 if (is_array($holiday_data)) {
                     $holidays_by_year[$year] = $holiday_data;
@@ -492,7 +319,7 @@ function jcalendar_build_js_data_for_admin($post_id = null) {
     }
     $js_data['holidays'] = $holidays_by_year;
     $js_data['locale'] = $locale;
-    $js_data['isLicenseValid'] = jcalendar_is_license_valid();
+    $js_data['holidayJsonUrl'] = $upload_dir['baseurl'] . '/tintcal-holidays';
 
     return $js_data;
 }
@@ -503,56 +330,108 @@ add_action('admin_enqueue_scripts', function ($hook) {
 
     // TintCal関連の管理画面かを判定
     $is_tintcal_admin_page = false;
-    global $jcal_preference_hook, $jcal_config_hook;
-    if ($hook === $jcal_preference_hook || $hook === $jcal_config_hook) {
+    global $tintcal_preference_hook, $tintcal_config_hook;
+    if ($hook === $tintcal_preference_hook || $hook === $tintcal_config_hook) {
         $is_tintcal_admin_page = true;
     }
 
-    // カスタム投稿タイプ 'jcalendar' の編集画面かを判定
-    $is_jcalendar_post_edit_page = false;
-    if ($screen && $screen->id === 'jcalendar' && ($hook === 'post.php' || $hook === 'post-new.php')) {
-        $is_jcalendar_post_edit_page = true;
+    // カスタム投稿タイプ 'tintcal' の編集画面かを判定
+    $is_tintcal_post_edit_page = false;
+    if ($screen && $screen->id === 'tintcal' && ($hook === 'post.php' || $hook === 'post-new.php')) {
+        $is_tintcal_post_edit_page = true;
     }
 
     // TintCal関連ページでなければ処理を中断
-    if (!$is_tintcal_admin_page && !$is_jcalendar_post_edit_page) {
+    if (!$is_tintcal_admin_page && !$is_tintcal_post_edit_page) {
         return;
     }
     
     // --- データ構築とスクリプトエンキューはここから ---
     $post_id = null;
-    if ($is_jcalendar_post_edit_page) {
+    if ($is_tintcal_post_edit_page) {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading post ID from GET is a standard WordPress practice in this context.
         $post_id = isset($_GET['post']) ? absint(wp_unslash($_GET['post'])) : null;
     }
-    $js_data = jcalendar_build_js_data_for_admin($post_id);
+    $js_data = tintcal_build_js_data_for_admin($post_id);
 
     // スタイルを読み込む
-    wp_enqueue_style('jcalendar-style', plugin_dir_url(__FILE__) . 'assets/css/calendar.css', [], JCALENDAR_VERSION);
+    wp_enqueue_style('tintcal-style', plugin_dir_url(__FILE__) . 'assets/css/calendar.css', [], TINTCAL_VERSION);
 
     if ($is_tintcal_admin_page) { // 「カテゴリ・日付入力」または「プラグイン設定」ページの場合
-        wp_enqueue_script('jcalendar-admin', plugin_dir_url(__FILE__) . 'assets/js/calendar-admin.js', ['jquery'], JCALENDAR_VERSION, true);
-        wp_localize_script('jcalendar-admin', 'jcalendarPluginData', $js_data); // jcalendar-admin に localize
+        wp_enqueue_script('tintcal-admin', plugin_dir_url(__FILE__) . 'assets/js/calendar-admin.js', ['jquery'], TINTCAL_VERSION, true);
+        wp_localize_script('tintcal-admin', 'tintcalPluginData', $js_data); // tintcal-admin に localize
         
-        wp_enqueue_script('jcalendar-editor', plugin_dir_url(__FILE__) . 'assets/js/category-editor.js', [], JCALENDAR_VERSION, true);
-        wp_enqueue_script('jcalendar-admin-ui', plugin_dir_url(__FILE__) . 'assets/js/admin-ui-jcalendar.js', [], JCALENDAR_VERSION, true);
+        wp_enqueue_script('tintcal-editor', plugin_dir_url(__FILE__) . 'assets/js/category-editor.js', ['tintcal-admin'], TINTCAL_VERSION, true);
+        wp_enqueue_script('tintcal-admin-ui', plugin_dir_url(__FILE__) . 'assets/js/admin-ui-tintcal.js', [], TINTCAL_VERSION, true);
 
-    } else if ($is_jcalendar_post_edit_page) { // 「カレンダー」投稿の編集・新規作成ページの場合
-        wp_enqueue_script('jcalendar-front', plugin_dir_url(__FILE__) . 'assets/js/calendar-front.js', ['jquery'], JCALENDAR_VERSION, true);
-        wp_localize_script('jcalendar-front', 'jcalendarPluginData', $js_data); // jcalendar-front に localize
+    } else if ($is_tintcal_post_edit_page) { // 「カレンダー」投稿の編集・新規作成ページの場合
+        wp_enqueue_script('tintcal-front', plugin_dir_url(__FILE__) . 'assets/js/calendar-front.js', ['jquery'], TINTCAL_VERSION, true);
+        wp_localize_script('tintcal-front', 'tintcalPluginData', $js_data); // tintcal-front に localize
         
-        wp_add_inline_script('jcalendar-front', "document.addEventListener('DOMContentLoaded', () => { new JCalendar('#jcalendar-preview-admin', jcalendarPluginData); });", 'after');
+        wp_add_inline_script('tintcal-front', "document.addEventListener('DOMContentLoaded', () => { new TintCal('#tintcal-preview-admin', tintcalPluginData); });", 'after');
     }
 });
 
 /**
  * フロントエンドのJavaScriptに渡すための設定データを構築する共通関数
  *
- * @param int $post_id カレンダー投稿のID
+ * @param int|null $post_id カレンダー投稿のID
  * @return array JavaScriptに渡す設定データの連想配列
  */
-function jcalendar_build_js_data_for_frontend($post_id) {
+function tintcal_build_js_data_for_frontend($post_id) {
     $js_data = [];
+
+    // null（ショートコードや汎用読み込み）時は、サイト全体設定のみを返す
+    if (empty($post_id)) {
+        $setting_keys = [
+            'headerColor'            => ['type' => 'string', 'default' => '#eeeeee'],
+            'sundayColor'            => ['type' => 'string', 'default' => '#ffecec'],
+            'saturdayColor'          => ['type' => 'string', 'default' => '#ecf5ff'],
+            'holidayColor'           => ['type' => 'string', 'default' => '#ffdddd'],
+            'showSundayColor'        => ['type' => 'bool',   'default' => 1],
+            'showSaturdayColor'      => ['type' => 'bool',   'default' => 1],
+            'enableHolidays'         => ['type' => 'bool',   'default' => 1],
+            'showLegend'             => ['type' => 'bool',   'default' => 1],
+            'showHeaderWeekendColor' => ['type' => 'bool',   'default' => 1, 'option_key' => 'tintcal_show_header_weekend_color'],
+            'showTodayButton'        => ['type' => 'bool',   'default' => 1, 'option_key' => 'tintcal_show_today_button'],
+            'startDay'               => ['type' => 'string', 'default' => 'sunday'],
+        ];
+        foreach ($setting_keys as $js_key => $props) {
+            $option_key = isset($props['option_key']) ? $props['option_key'] : 'tintcal_' . strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $js_key));
+            $js_data[$js_key] = get_option($option_key, $props['default']);
+        }
+        $all_categories = get_option('tintcal_categories', []);
+        $visible_in_main_settings = array_filter($all_categories, function($cat) { return ($cat['visible'] ?? true); });
+        $js_data['visibleCategories'] = array_values(wp_list_pluck($visible_in_main_settings, 'slug'));
+        $js_data['pluginUrl']   = plugin_dir_url(__FILE__);
+        $js_data['ajaxUrl']     = admin_url('admin-ajax.php');
+        $js_data['nonce']       = wp_create_nonce('tintcal_settings_nonce');
+        $js_data['categories']  = tintcal_get_displayable_categories();
+        $js_data['assignments'] = json_decode(get_option('tintcal_date_categories', '{}'), true) ?: [];
+        // 祝日ファイル
+        $holidays_by_year = [];
+        $current_year = (int)date_i18n('Y');
+        $years_to_load = [$current_year, $current_year + 1, $current_year + 2];
+        $locale = 'ja';
+        $upload_dir = wp_upload_dir();
+        $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
+        foreach ($years_to_load as $year) {
+            $file_path = "{$tintcal_dir}/{$locale}/{$year}.json";
+            if (file_exists($file_path)) {
+                $json_content = file_get_contents($file_path);
+                if ($json_content !== false) {
+                    $holiday_data = json_decode($json_content, true);
+                    if (is_array($holiday_data)) {
+                        $holidays_by_year[$year] = $holiday_data;
+                    }
+                }
+            }
+        }
+        $js_data['holidays'] = $holidays_by_year;
+        $js_data['locale'] = $locale;
+        $js_data['holidayJsonUrl'] = $upload_dir['baseurl'] . '/tintcal-holidays';
+        return $js_data;
+    }
 
     // --- 設定項目のキーとデフォルト値を定義 ---
     $setting_keys = [
@@ -564,15 +443,15 @@ function jcalendar_build_js_data_for_frontend($post_id) {
         'showSaturdayColor'      => ['type' => 'bool',   'default' => 1],
         'enableHolidays'         => ['type' => 'bool',   'default' => 1],
         'showLegend'             => ['type' => 'bool',   'default' => 1],
-        'showHeaderWeekendColor' => ['type' => 'bool',   'default' => 1, 'option_key' => 'jcal_show_header_weekend_color'],
-        'showTodayButton'        => ['type' => 'bool',   'default' => 1, 'option_key' => 'jcal_show_today_button'],
+        'showHeaderWeekendColor' => ['type' => 'bool',   'default' => 1, 'option_key' => 'tintcal_show_header_weekend_color'],
+        'showTodayButton'        => ['type' => 'bool',   'default' => 1, 'option_key' => 'tintcal_show_today_button'],
         'startDay'               => ['type' => 'string', 'default' => 'sunday'],
     ];
 
     // --- 各設定値を取得 ---
     foreach ($setting_keys as $js_key => $props) {
-        // DB上のキー名を生成 (例: showSundayColor -> _jcalendar_show_sunday_color)
-        $option_key = isset($props['option_key']) ? $props['option_key'] : 'jcalendar_' . strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $js_key));
+        // DB上のキー名を生成 (例: showSundayColor -> _tintcal_show_sunday_color)
+        $option_key = isset($props['option_key']) ? $props['option_key'] : 'tintcal_' . strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $js_key));
         $meta_key   = '_' . $option_key;
 
         $meta_value = get_post_meta($post_id, $meta_key, true);
@@ -587,14 +466,14 @@ function jcalendar_build_js_data_for_frontend($post_id) {
     }
 
     // --- 表示カテゴリのスラグを取得 ---
-    // _jcalendar_visible_categories は配列として保存されるべきなので、空の場合は空配列にする
-    $visible_slugs = get_post_meta($post_id, '_jcalendar_visible_categories', true);
-    // get_post_metaは空の配列を空文字列で返すことがあるため、is_arrayでチェックし、配列でなければ空配列として扱う
-    $js_data['visibleCategories'] = is_array($visible_slugs) ? $visible_slugs : [];
+    $visible_slugs = get_post_meta($post_id, '_tintcal_visible_categories', true);
 
-    // 無料版で、Post Metaが空の場合、共通設定の「表示ON」カテゴリを初期値とする
-    if (!jcalendar_is_license_valid() && empty($js_data['visibleCategories']) && !$is_first_save) { // !$is_first_save は初回保存ではない場合
-        $all_categories = get_option('jcalendar_categories', []);
+    // get_post_metaは空の配列を空文字列で返すことがあるため、is_arrayでチェック
+    if (is_array($visible_slugs)) {
+        $js_data['visibleCategories'] = $visible_slugs;
+    } else {
+        // メタデータが存在しない場合（ショートコードでID指定がない場合など）は、共通設定の表示カテゴリを適用
+        $all_categories = get_option('tintcal_categories', []);
         $visible_in_main_settings = array_filter($all_categories, function($cat) { return ($cat['visible'] ?? true); });
         $js_data['visibleCategories'] = array_values(wp_list_pluck($visible_in_main_settings, 'slug'));
     }
@@ -602,21 +481,20 @@ function jcalendar_build_js_data_for_frontend($post_id) {
     // --- 全カレンダーで共通のデータを追加 ---
     $js_data['pluginUrl']   = plugin_dir_url(__FILE__);
     $js_data['ajaxUrl']     = admin_url('admin-ajax.php');
-    $js_data['nonce']       = wp_create_nonce('jcalendar_settings_nonce');
-    $js_data['categories'] = jcalendar_get_displayable_categories();
-    $js_data['assignments'] = json_decode(get_option('jcalendar_date_categories', '{}'), true) ?: [];
+    $js_data['nonce']       = wp_create_nonce('tintcal_settings_nonce');
+    $js_data['categories'] = tintcal_get_displayable_categories();
+    $js_data['assignments'] = json_decode(get_option('tintcal_date_categories', '{}'), true) ?: [];
 
     // --- 祝日データを読み込んでJSに渡す ---
     $holidays_by_year = [];
     $current_year = (int)date_i18n('Y');
     $years_to_load = [$current_year, $current_year + 1, $current_year + 2];
-    
-    // 1. ▼▼▼ 国コード(locale)を一旦 'ja' で固定 ▼▼▼
     $locale = 'ja';
+    $upload_dir = wp_upload_dir();
+    $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
 
     foreach ($years_to_load as $year) {
-        // 2. ▼▼▼ 新しいフォルダパスを参照する ▼▼▼
-        $file_path = plugin_dir_path(__FILE__) . "assets/holidays/{$locale}/{$year}.json";
+        $file_path = "{$tintcal_dir}/{$locale}/{$year}.json";
         if (file_exists($file_path)) {
             $json_content = file_get_contents($file_path);
             $holiday_data = json_decode($json_content, true);
@@ -627,23 +505,10 @@ function jcalendar_build_js_data_for_frontend($post_id) {
     }
     $js_data['holidays'] = $holidays_by_year;
     $js_data['locale'] = $locale; // 3. ▼▼▼ JS側で使うためlocaleも渡す ▼▼▼
-    $js_data['isLicenseValid'] = jcalendar_is_license_valid();
+    $js_data['holidayJsonUrl'] = $upload_dir['baseurl'] . '/tintcal-holidays';
 
     return $js_data;
 }
-
-// TintCal管理画面でライセンス未入力時のみ警告を表示
-add_action('admin_notices', function() {
-    if (!current_user_can('manage_options')) return;
-    $screen = get_current_screen();
-    // TintCalの管理画面のみ
-    if (strpos($screen->id, 'jcalendar') === false) return;
-    $license_key = get_option('jcalendar_license_key', '');
-    $payload = function_exists('jcalendar_get_license_status') ? jcalendar_get_license_status() : false;
-    if (empty($license_key) || !$payload || !isset($payload['exp']) || $payload['exp'] <= time()) {
-        echo '<div class="notice notice-warning"><p>TintCal：ライセンスキーが未入力です。正規ライセンスを入力してください。</p></div>';
-    }
-});
 
 // =============================
 // フロント画面用のスクリプト・スタイル登録
@@ -652,41 +517,41 @@ add_action('admin_notices', function() {
 add_action('wp_enqueue_scripts', function () {
     // --- フロントエンドで使うスクリプトとスタイルを「登録」だけしておく ---
     wp_register_script(
-        'jcalendar-front',
+        'tintcal-front',
         plugin_dir_url(__FILE__) . 'assets/js/calendar-front.js',
         [],
-        JCALENDAR_VERSION,
+        TINTCAL_VERSION,
         true
     );
     wp_register_style(
-        'jcalendar-style-front',
+        'tintcal-style-front',
         plugin_dir_url(__FILE__) . 'assets/css/calendar.css',
         [],
-        JCALENDAR_VERSION
+        TINTCAL_VERSION
     );
 
     // --- ここから下を「if」条件の外に出す ---
-    if (is_singular('jcalendar')) {
+    if (is_singular('tintcal')) {
         $post_id = get_the_ID();
-        $js_data = jcalendar_build_js_data_for_frontend($post_id);
-        wp_localize_script('jcalendar-front', 'jcalendarPluginData', $js_data);
+        $js_data = tintcal_build_js_data_for_frontend($post_id);
+        wp_localize_script('tintcal-front', 'tintcalPluginData', $js_data);
 
         $json_data = json_encode($js_data, JSON_UNESCAPED_UNICODE);
-        $unique_id = 'jcalendar-instance-' . $post_id;
+        $unique_id = 'tintcal-instance-' . $post_id;
 
-        $script = "document.addEventListener('DOMContentLoaded', function() { new JCalendar('#" . esc_js($unique_id) . "', jcalendarPluginData); });";
-        wp_add_inline_script('jcalendar-front', $script);
+        $script = "document.addEventListener('DOMContentLoaded', function() { new TintCal('#" . esc_js($unique_id) . "', tintcalPluginData); });";
+        wp_add_inline_script('tintcal-front', $script);
 
-        wp_enqueue_script('jcalendar-front');
-        wp_enqueue_style('jcalendar-style-front');
+        wp_enqueue_script('tintcal-front');
+        wp_enqueue_style('tintcal-style-front');
     } else {
         // ショートコードや他の場所でもカレンダーを使う場合はこちらでデータを渡す
         // 必要に応じて $post_id の取得方法や $js_data の内容を調整
         // 例: グローバルな設定だけ渡す場合
-        $js_data = jcalendar_build_js_data_for_frontend(null);
-        wp_localize_script('jcalendar-front', 'jcalendarPluginData', $js_data);
-        wp_enqueue_script('jcalendar-front');
-        wp_enqueue_style('jcalendar-style-front');
+        $js_data = tintcal_build_js_data_for_frontend(null);
+        wp_localize_script('tintcal-front', 'tintcalPluginData', $js_data);
+        wp_enqueue_script('tintcal-front');
+        wp_enqueue_style('tintcal-style-front');
     }
 });
 
@@ -694,26 +559,26 @@ add_action('wp_enqueue_scripts', function () {
 // カレンダーショートコード表示
 // =============================
 
-function mjc_display_calendar() {
-  $start_day = get_option('jcalendar_start_day', 'sunday');
-  $enable_holidays = get_option('jcalendar_enable_holidays', 1);
-  $holiday_color = get_option('jcalendar_holiday_color', '#ffdddd');
+function tintcal_display_calendar() {
+  $start_day = get_option('tintcal_start_day', 'sunday');
+  $enable_holidays = get_option('tintcal_enable_holidays', 1);
+  $holiday_color = get_option('tintcal_holiday_color', '#ffdddd');
   ob_start();
   ?>
-  <div id="mjc-calendar-container">
-    <input type="hidden" id="jcalendar-start-day" value="<?php echo esc_attr($start_day); ?>">
-    <input type="hidden" id="jcalendar-enable-holidays" value="<?php echo esc_attr($enable_holidays); ?>">
-    <input type="hidden" id="jcalendar-holiday-color" value="<?php echo esc_attr($holiday_color); ?>">
-    <input type="hidden" id="jcalendar-sunday-color" value="<?php echo esc_attr(get_option('jcalendar_sunday_color', '#ffecec')); ?>">
-    <input type="hidden" id="jcalendar-saturday-color" value="<?php echo esc_attr(get_option('jcalendar_saturday_color', '#ecf5ff')); ?>">
-    <input type="hidden" id="jcalendar-show-sunday-color" value="<?php echo esc_attr(get_option('jcalendar_show_sunday_color', 1)); ?>">
-    <input type="hidden" id="jcalendar-show-saturday-color" value="<?php echo esc_attr(get_option('jcalendar_show_saturday_color', 1)); ?>">
-    <div id="mjc-calendar-controls">
-      <button id="prev-month">＜ 前の月</button>
-      <span id="mjc-month-year"></span>
-      <button id="next-month">次の月 ＞</button>
+  <div id="tintcal-calendar-container">
+    <input type="hidden" id="tintcal-start-day" value="<?php echo esc_attr($start_day); ?>">
+    <input type="hidden" id="tintcal-enable-holidays" value="<?php echo esc_attr($enable_holidays); ?>">
+    <input type="hidden" id="tintcal-holiday-color" value="<?php echo esc_attr($holiday_color); ?>">
+    <input type="hidden" id="tintcal-sunday-color" value="<?php echo esc_attr(get_option('tintcal_sunday_color', '#ffecec')); ?>">
+    <input type="hidden" id="tintcal-saturday-color" value="<?php echo esc_attr(get_option('tintcal_saturday_color', '#ecf5ff')); ?>">
+    <input type="hidden" id="tintcal-show-sunday-color" value="<?php echo esc_attr(get_option('tintcal_show_sunday_color', 1)); ?>">
+    <input type="hidden" id="tintcal-show-saturday-color" value="<?php echo esc_attr(get_option('tintcal_show_saturday_color', 1)); ?>">
+    <div id="tintcal-calendar-controls">
+    <button id="prev-month"><?php echo esc_html__( '＜ 前の月', 'tintcal' ); ?></button>
+    <span id="tintcal-month-year"></span>
+    <button id="next-month"><?php echo esc_html__( '次の月 ＞', 'tintcal' ); ?></button>
     </div>
-    <table id="mjc-calendar" border="1" cellspacing="0" cellpadding="5">
+    <table id="tintcal-calendar" border="1" cellspacing="0" cellpadding="5">
       <thead><tr></tr></thead>
       <tbody></tbody>
     </table>
@@ -729,40 +594,59 @@ function mjc_display_calendar() {
 
 /**
  * TintCal用のAJAXセキュリティチェック共通関数
- * - 管理者権限（manage_options）をチェック
+ * - 投稿の編集権限（edit_posts）をチェック
  * - Nonceをチェック
  * チェックに失敗した場合は、JSONエラーを返して処理を中断します。
  */
-function mjc_ajax_security_check($cap) {
-  check_ajax_referer('jcalendar_settings_nonce');
+function tintcal_ajax_security_check() {
+  check_ajax_referer('tintcal_settings_nonce');
   
-  if (!jcalendar_current_user_can_access($cap)) {
-    wp_send_json_error(['message' => 'この操作を行う権限がありません。']);
+  if (!current_user_can('edit_posts')) {
+    wp_send_json_error(['message' => esc_html__( 'この操作を行う権限がありません。', 'tintcal' )]);
   }
 }
 
-add_action('wp_ajax_save_jcalendar_categories', function () {
-  mjc_ajax_security_check('manage_common_settings');
-  // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedInput.InputNotSanitized -- Nonce check is handled by mjc_ajax_security_check(), and the raw JSON string is decoded and sanitized in subsequent processing.
+add_action('wp_ajax_save_tintcal_categories', function () {
+  tintcal_ajax_security_check();
+  
+  // 1. まずは生のデータを取得
+  // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce check is handled by tintcal_ajax_security_check(), and the value is sanitized in the loop below.
   $raw_categories_post = isset($_POST['categories']) ? wp_unslash($_POST['categories']) : '';
+
+  // 2. デコード
   $raw = urldecode($raw_categories_post);
   $parsed = json_decode($raw, true);
+
+  // 3. デコード後の形式をチェック
   if (!is_array($parsed)) {
-    wp_send_json_error(['message' => '不正なデータ形式']);
+    wp_send_json_error(['message' => esc_html__( '不正なデータ形式', 'tintcal' )]);
   }
 
-  // ライセンスが有効でない（無料版の）場合
-  if (!jcalendar_is_license_valid()) {
-    // 保存しようとしているカテゴリが2つ以上ある場合はエラー
-    if (count($parsed) > 1) {
-      wp_send_json_error(['message' => '無料版で作成できるカテゴリは1つまでです。']);
-    }
+  // 4. 配列の中身を一つずつサニタイズ
+  $sanitized_categories = [];
+  foreach ($parsed as $cat) {
+      $sanitized_cat = [];
+      $sanitized_cat['name'] = isset($cat['name']) ? sanitize_text_field($cat['name']) : '';
+      $sanitized_cat['color'] = isset($cat['color']) ? sanitize_hex_color($cat['color']) : '#dddddd';
+      $sanitized_cat['slug'] = isset($cat['slug']) ? sanitize_key($cat['slug']) : '';
+      $sanitized_cat['visible'] = isset($cat['visible']) ? (bool)$cat['visible'] : true;
+      $sanitized_cat['order'] = isset($cat['order']) ? absint($cat['order']) : 0;
+      $sanitized_categories[] = $sanitized_cat;
+  }
+  $parsed = $sanitized_categories;
+
+  // プラグイン仕様：シングルカテゴリのみサポート
+  $tintcal_trimmed_to_single = false;
+  if (count($parsed) > 1) {
+      // 2件目以降は無視して、先頭の1件だけを保存対象にする（UIは別途で1件仕様に合わせる）
+      $parsed = [ reset($parsed) ];
+      $tintcal_trimmed_to_single = true;
   }
 
   // カテゴリスラグの重複バリデーション
   $slugs = array_column($parsed, 'slug');
   if (count(array_unique($slugs)) !== count($slugs)) {
-    wp_send_json_error(['message' => 'カテゴリスラグが重複しています。']);
+    wp_send_json_error(['message' => esc_html__( 'カテゴリスラグが重複しています。', 'tintcal' )]);
   }
 
   // カテゴリ名の重複バリデーション
@@ -771,7 +655,8 @@ add_action('wp_ajax_save_jcalendar_categories', function () {
     $name = isset($cat['name']) ? trim($cat['name']) : '';
     if ($name === '') continue;
     if (in_array($name, $names, true)) {
-      wp_send_json_error(['message' => "（サーバー判定）カテゴリ名「{$name}」が重複しています。"]);
+      // translators: %s: Category name.
+      wp_send_json_error(['message' => sprintf( esc_html__( '（サーバー判定）カテゴリ名「%s」が重複しています。', 'tintcal' ), $name )]);
     }
     $names[] = $name;
   }
@@ -781,22 +666,15 @@ add_action('wp_ajax_save_jcalendar_categories', function () {
     // 'visible'キーが存在し、その値が明確に false でない限り、常に true（表示）とする
     // これにより、古いデータや不正な値が保存されるのを防ぐ
     $cat['visible'] = isset($cat['visible']) ? (bool)$cat['visible'] : true;
-
-    // 無料版の場合、色を固定のデフォルトカラーに強制上書き
-    if (!jcalendar_is_license_valid()) {
-      $cat['color'] = '#dddddd'; // 無料版用の固定カラー
-    }
-
   }
   unset($cat); // ループ後の参照を解除
 
-  // 無料版で、DBに複数カテゴリが存在するのに、1つのカテゴリで上書きしようとしているかチェック
-  $existing_categories = get_option('jcalendar_categories', []);
-  // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce check is handled by mjc_ajax_security_check().
+  // DBに複数カテゴリが存在するのに、1つのカテゴリで上書きしようとしているかチェック
+  $existing_categories = get_option('tintcal_categories', []);
+  // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce check is handled by tintcal_ajax_security_check().
   $is_confirmed = !empty($_POST['confirmed']);
 
   if (
-      !jcalendar_is_license_valid() &&                          // 無料版で
       count($existing_categories) > 1 &&                       // DBには2つ以上のカテゴリがあり
       count($parsed) <= 1 &&                                   // 保存しようとしているデータは1つ以下で
       !$is_confirmed                               // かつ、まだユーザーの確認を得ていない場合
@@ -804,15 +682,15 @@ add_action('wp_ajax_save_jcalendar_categories', function () {
       // 保存せずに、JavaScriptに確認を促すエラーを返す
       wp_send_json_error([
           'confirmation_required' => true,
-          'message' => "現在、データベースには複数のカテゴリが保存されています。\n\nこのまま保存すると、表示されていない他のカテゴリが全て削除されますが、よろしいですか？"
+          'message' => esc_html__( "現在、データベースには複数のカテゴリが保存されています。\n\nこのまま保存すると、表示されていない他のカテゴリが全て削除されますが、よろしいですか？", 'tintcal' )
       ]);
   }
 
-  update_option('jcalendar_categories', $parsed);
+  update_option('tintcal_categories', $parsed);
 
   // 追加：割当データも整理（スラグベースで割当を整理）
   $allowed_slugs = array_column($parsed, 'slug');
-  $dateCategories = json_decode(get_option('jcalendar_date_categories', '{}'), true) ?? [];
+  $dateCategories = json_decode(get_option('tintcal_date_categories', '{}'), true) ?? [];
 
     foreach ($dateCategories as $date => $slugArr) {
     if (!is_array($slugArr)) $slugArr = [$slugArr];
@@ -826,22 +704,30 @@ add_action('wp_ajax_save_jcalendar_categories', function () {
       $dateCategories[$date] = $slugArr;
     }
   }
-  update_option('jcalendar_date_categories', json_encode($dateCategories, JSON_UNESCAPED_UNICODE));
+  update_option('tintcal_date_categories', json_encode($dateCategories, JSON_UNESCAPED_UNICODE));
 
-  wp_send_json_success([
+  $response = [
     'saved' => true,
     'assignments' => $dateCategories
-  ]);
+  ];
+  if (isset($tintcal_trimmed_to_single) && $tintcal_trimmed_to_single) {
+      $response['notice'] = esc_html__( 'このプラグインは1つのカテゴリのみをサポートしています。2つ目以降は保存されません。', 'tintcal' );
+  }
+  wp_send_json_success($response);
 });
 
-add_action('wp_ajax_save_jcalendar_assignment', function () {
-  mjc_ajax_security_check('manage_common_settings');
-  // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce check handled by mjc_ajax_security_check().
+add_action('wp_ajax_save_tintcal_assignment', function () {
+  tintcal_ajax_security_check();
+  // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce check handled by tintcal_ajax_security_check().
   $date = isset($_POST['date']) ? sanitize_text_field(wp_unslash($_POST['date'])) : '';
-  // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedInput.InputNotSanitized -- Nonce check is handled by mjc_ajax_security_check() and the value is sanitized.
-  $categories = isset($_POST['categories']) ? json_decode(sanitize_text_field(wp_unslash($_POST['categories'])), true) : [];
+  // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedInput.InputNotSanitized -- Nonce check is handled by tintcal_ajax_security_check() and the value is sanitized.
+  $categories_json = isset($_POST['categories']) ? sanitize_text_field(wp_unslash($_POST['categories'])) : '[]';
+  $categories = json_decode($categories_json, true);
   if (!is_array($categories)) $categories = [];
-  $dateCategories = json_decode(get_option('jcalendar_date_categories'), true);
+  // 各スラグをサニタイズ
+  $categories = array_map('sanitize_key', $categories);
+  
+  $dateCategories = json_decode(get_option('tintcal_date_categories'), true);
   $dateCategories = is_array($dateCategories) ? $dateCategories : [];
   foreach ($dateCategories as $d => $cat) {
       if (!is_array($cat)) $dateCategories[$d] = [$cat];
@@ -852,75 +738,89 @@ add_action('wp_ajax_save_jcalendar_assignment', function () {
         $dateCategories[$date] = $categories;
   }
 
-  update_option('jcalendar_date_categories', json_encode($dateCategories, JSON_UNESCAPED_UNICODE));
+  update_option('tintcal_date_categories', json_encode($dateCategories, JSON_UNESCAPED_UNICODE));
   
   // JSに返すためのカテゴリデータを準備する
   wp_send_json_success([
     'saved' => true,
     'assignments' => $dateCategories,
-    'categories' => jcalendar_get_displayable_categories()
+    'categories' => tintcal_get_displayable_categories()
   ]);
 });
 
-add_action('wp_ajax_save_jcalendar_holidays', function () {
-  mjc_ajax_security_check('manage_common_settings');
-  // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce check handled by mjc_ajax_security_check().
+add_action('wp_ajax_save_tintcal_holidays', function () {
+  tintcal_ajax_security_check();
+  check_ajax_referer('tintcal_settings_nonce'); // Add this line to satisfy the plugin checker.
+
+  // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
   $year = isset($_POST['year']) ? sanitize_text_field(wp_unslash($_POST['year'])) : '';
-  // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce check handled by mjc_ajax_security_check().
-  $data = '';
-  // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce check handled by mjc_ajax_security_check().
-  if (isset($_POST['holidays'])) {
-    // phpcs:ignore WordPress.Security.ValidatedInput.InputNotSanitized -- This is a raw JSON string and will be decoded and sanitized in the subsequent processing.
-    $data = wp_unslash($_POST['holidays']);
-  }
-  if (!preg_match('/^\d{4}$/', $year)) {
-      wp_send_json_error(['message' => 'Invalid year']);
-  }
-  $json = json_encode(json_decode(stripslashes($data), true), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-  // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce check handled by mjc_ajax_security_check().
+  $data = isset($_POST['holidays']) ? sanitize_text_field(wp_unslash($_POST['holidays'])) : '';
   $locale = isset($_POST['locale']) ? sanitize_text_field(wp_unslash($_POST['locale'])) : 'ja';
-  $upload_dir = plugin_dir_path(__FILE__) . "assets/holidays/{$locale}";
-  if (!file_exists($upload_dir)) wp_mkdir_p($upload_dir);
-  $file_path = $upload_dir . "/$year.json";
+  // phpcs:enable
+
+  if (!preg_match('/^\d{4}$/', $year)) {
+    wp_send_json_error(['message' => esc_html__( '無効な年です', 'tintcal' )]);
+  }
+  
+  $decoded_data = json_decode(stripslashes($data), true);
+  if (!is_array($decoded_data)) {
+      $decoded_data = [];
+  }
+  $sanitized_data = [];
+  foreach($decoded_data as $date => $name) {
+      $sanitized_date = sanitize_text_field($date);
+      $sanitized_name = sanitize_text_field($name);
+      $sanitized_data[$sanitized_date] = $sanitized_name;
+  }
+
+  $json = wp_json_encode($sanitized_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+  
+  $upload_dir = wp_upload_dir();
+  $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
+  $locale_dir = "{$tintcal_dir}/{$locale}";
+  wp_mkdir_p($locale_dir);
+  $file_path = $locale_dir . "/$year.json";
   file_put_contents($file_path, $json);
   wp_send_json_success(['saved' => true, 'file' => $file_path]);
 });
 
-add_action('wp_ajax_get_jcalendar_categories', function () {
-  mjc_ajax_security_check('manage_common_settings');
-  // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce check handled by mjc_ajax_security_check().
+add_action('wp_ajax_get_tintcal_categories', function () {
+  tintcal_ajax_security_check();
+  // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce check handled by tintcal_ajax_security_check().
   // phpcs:ignore WordPress.Security.ValidatedInput.InputNotValidated, WordPress.Security.ValidatedInput.InputNotSanitized -- No user input is directly processed.
-  $cats = get_option('jcalendar_categories', []);
+  $cats = get_option('tintcal_categories', []);
   if (!is_array($cats)) $cats = [];
   wp_send_json_success($cats);
 });
 
-add_action('wp_ajax_get_jcalendar_assignments', function () {
-  mjc_ajax_security_check('manage_common_settings');
-  // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce check handled by mjc_ajax_security_check().
+add_action('wp_ajax_get_tintcal_assignments', function () {
+  tintcal_ajax_security_check();
+  // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce check handled by tintcal_ajax_security_check().
   // phpcs:ignore WordPress.Security.ValidatedInput.InputNotValidated, WordPress.Security.ValidatedInput.InputNotSanitized -- No user input is directly processed.
-  $assignments = json_decode(get_option('jcalendar_date_categories', '{}'), true);
+  $assignments = json_decode(get_option('tintcal_date_categories', '{}'), true);
   wp_send_json_success($assignments);
 });
 
-add_action('wp_ajax_reload_jcalendar_holidays', function () {
-    mjc_ajax_security_check('manage_common_settings');
-  // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedInput.InputNotValidated, WordPress.Security.ValidatedInput.InputNotSanitized -- Nonce check handled by mjc_ajax_security_check(). No user input is directly processed.
+add_action('wp_ajax_reload_tintcal_holidays', function () {
+    tintcal_ajax_security_check();
+  // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedInput.InputNotValidated, WordPress.Security.ValidatedInput.InputNotSanitized -- Nonce check handled by tintcal_ajax_security_check(). No user input is directly processed.
     
     // 祝日ファイル更新処理を実行
-    $results = jcalendar_update_holiday_files(true);
+    $results = tintcal_update_holiday_files(true);
 
     // 更新後の最新の祝日データを読み込む
     $holidays_by_year = [];
     $current_year = (int)date_i18n('Y');
     $years_to_load = [$current_year, $current_year + 1, $current_year + 2];
     $locale = 'ja';
+    $upload_dir = wp_upload_dir();
+    $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
 
     foreach ($years_to_load as $year) {
-        $file_path = plugin_dir_path(__FILE__) . "assets/holidays/{$locale}/{$year}.json";
+        $file_path = "{$tintcal_dir}/{$locale}/{$year}.json";
         if (file_exists($file_path)) {
-            $json_content = @file_get_contents($file_path);
-            if($json_content) {
+            $json_content = file_get_contents($file_path);
+            if ($json_content !== false) {
                 $holiday_data = json_decode($json_content, true);
                 if (is_array($holiday_data)) {
                     $holidays_by_year[$year] = $holiday_data;
@@ -931,28 +831,28 @@ add_action('wp_ajax_reload_jcalendar_holidays', function () {
 
     // 成功応答に、最新の祝日データと処理結果の両方を含めて返す
     wp_send_json_success([
-        'message'   => '祝日再取得完了',
+        'message'   => esc_html__( '祝日再取得完了', 'tintcal' ),
         'results'   => $results,
         'holidays'  => $holidays_by_year
     ]);
 });
 
-add_action('wp_ajax_reset_jcalendar_assignments', function () {
-  mjc_ajax_security_check('manage_common_settings');
-  // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedInput.InputNotValidated, WordPress.Security.ValidatedInput.InputNotSanitized -- Nonce check handled by mjc_ajax_security_check(). No user input is directly processed.
+add_action('wp_ajax_reset_tintcal_assignments', function () {
+  tintcal_ajax_security_check();
+  // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedInput.InputNotValidated, WordPress.Security.ValidatedInput.InputNotSanitized -- Nonce check handled by tintcal_ajax_security_check(). No user input is directly processed.
 
-  update_option('jcalendar_date_categories', '{}');
-  wp_send_json_success("日付割り当てデータを初期化しました");
+  update_option('tintcal_date_categories', '{}');
+  wp_send_json_success( esc_html__( '日付割り当てデータを初期化しました', 'tintcal' ) );
 });
 
 // 全データ初期化（カテゴリ・日付割当をすべて削除）
-add_action('wp_ajax_reset_jcalendar_all', function () {
-  mjc_ajax_security_check('manage_common_settings');
-  // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedInput.InputNotValidated, WordPress.Security.ValidatedInput.InputNotSanitized -- Nonce check handled by mjc_ajax_security_check(). No user input is directly processed.
+add_action('wp_ajax_reset_tintcal_all', function () {
+  tintcal_ajax_security_check();
+  // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedInput.InputNotValidated, WordPress.Security.ValidatedInput.InputNotSanitized -- Nonce check handled by tintcal_ajax_security_check(). No user input is directly processed.
   
-  update_option('jcalendar_categories', []);
-  update_option('jcalendar_date_categories', '{}');
-  wp_send_json_success("カテゴリと日付割当データをすべて初期化しました");
+  update_option('tintcal_categories', []);
+  update_option('tintcal_date_categories', '{}');
+  wp_send_json_success( esc_html__( 'カテゴリと日付割当データをすべて初期化しました', 'tintcal' ) );
 });
 
 /**
@@ -961,27 +861,16 @@ add_action('wp_ajax_reset_jcalendar_all', function () {
  * @param bool $return_results AJAXレスポンス用に結果を返すかどうか
  * @return array|void AJAX用に結果を返す場合は、処理結果の配列を返す
  */
-function jcalendar_update_holiday_files($return_results = false) {
+function tintcal_update_holiday_files($return_results = false) {
     $results = [];
-    // 改善案4を考慮し、当年・翌年・翌々年の3年分を取得対象とする
     $current_year = (int)date_i18n('Y');
     $years = [$current_year, $current_year + 1, $current_year + 2];
-    
-    // ▼▼▼ 国コード(locale)を一旦 'ja' で固定 ▼▼▼
     $locale = 'ja';
-    // 1. 保存先のベースとなるディレクトリパス
-    $base_upload_dir = plugin_dir_path(__FILE__) . 'assets/holidays/';
-    // 2. 国コードを含めた最終的なディレクトリパス
-    $upload_dir = $base_upload_dir . $locale;
 
-    // 3. 親ディレクトリがなければ先に作成
-    if (!file_exists($base_upload_dir)) {
-        wp_mkdir_p($base_upload_dir);
-    }
-    // 4. 国コードのディレクトリがなければ作成
-    if (!file_exists($upload_dir)) {
-        wp_mkdir_p($upload_dir);
-    }
+    $upload_dir = wp_upload_dir();
+    $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
+    $locale_dir = "{$tintcal_dir}/{$locale}";
+    wp_mkdir_p($locale_dir);
 
     foreach ($years as $year) {
         $url = "https://holidays-jp.github.io/api/v1/{$year}/date.json";
@@ -990,7 +879,7 @@ function jcalendar_update_holiday_files($return_results = false) {
 
         // 取得失敗時の処理
         if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200) {
-            $results[$year] = ['success' => false, 'error' => 'APIへの接続に失敗しました'];
+            $results[$year] = ['success' => false, 'error' => esc_html__( 'APIへの接続に失敗しました', 'tintcal' )];
             continue; // 次の年へ
         }
 
@@ -999,12 +888,12 @@ function jcalendar_update_holiday_files($return_results = false) {
 
         // JSONデータが不正な場合の処理
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
-            $results[$year] = ['success' => false, 'error' => '取得したJSONデータが不正です'];
+            $results[$year] = ['success' => false, 'error' => esc_html__( '取得したJSONデータが不正です', 'tintcal' )];
             continue; // 次の年へ
         }
 
         // ファイルに保存
-        $file_path = $upload_dir . "/{$year}.json";
+        $file_path = $locale_dir . "/{$year}.json";
         // file_put_contentsは書き込んだバイト数を返す。失敗時はfalse
         $write_result = file_put_contents($file_path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         
@@ -1012,7 +901,7 @@ function jcalendar_update_holiday_files($return_results = false) {
             'success'     => $write_result !== false,
             'path'        => $file_path,
             'bytes'       => $write_result,
-            'error'       => $write_result === false ? 'ファイルの書き込みに失敗しました' : ''
+            'error'       => $write_result === false ? esc_html__( 'ファイルの書き込みに失敗しました', 'tintcal' ) : ''
         ];
     }
 
@@ -1028,13 +917,13 @@ function jcalendar_update_holiday_files($return_results = false) {
 
 add_action('admin_init', function() {
   // --- エクスポート処理 ---
-  if (isset($_POST['jcalendar_export'])) {
-    if (!jcalendar_current_user_can_access('manage_common_settings')) {
-      wp_die('このページにアクセスする権限がありません。');
+  if (isset($_POST['tintcal_export'])) {
+    if (!current_user_can('edit_posts')) {
+      wp_die( esc_html__( 'このページにアクセスする権限がありません。', 'tintcal' ) );
     }
-    check_admin_referer('jcalendar_settings_nonce');
+    check_admin_referer('tintcal_settings_nonce');
 
-    $categories = get_option('jcalendar_categories', []);
+    $categories = get_option('tintcal_categories', []);
     foreach ($categories as &$cat) {
       if (empty($cat['slug'])) {
         $cat['slug'] = wp_generate_uuid4();
@@ -1042,14 +931,14 @@ add_action('admin_init', function() {
     }
     unset($cat);
     
-    $assignments = json_decode(get_option('jcalendar_date_categories', '{}'), true);
+    $assignments = json_decode(get_option('tintcal_date_categories', '{}'), true);
     if (!is_array($assignments)) $assignments = [];
     foreach ($assignments as $date => $cat) {
       if (!is_array($cat)) $assignments[$date] = [$cat];
     }
     $data = ['categories' => $categories, 'assignments' => $assignments];
-    $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-    $date_str = wp_date('Y-m-d', current_time('timestamp'));
+    $json = wp_json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    $date_str = wp_date('Y-m-d', current_datetime()->getTimestamp());
     $filename = "tintcal-export-{$date_str}.json";
     header('Content-Type: application/json');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -1059,21 +948,21 @@ add_action('admin_init', function() {
   }
 
   
-  if (isset($_POST['jcalendar_import']) && isset($_FILES['jcalendar_import_file'])) {
-    if (!jcalendar_current_user_can_access('manage_common_settings')) {
-      wp_die('このページにアクセスする権限がありません。');
+  if (isset($_POST['tintcal_import']) && isset($_FILES['tintcal_import_file'])) {
+    if (!current_user_can('edit_posts')) {
+      wp_die( esc_html__( 'このページにアクセスする権限がありません。', 'tintcal' ) );
     }
-    check_admin_referer('jcalendar_settings_nonce');
+    check_admin_referer('tintcal_settings_nonce');
     // Nonce と権限チェックは既にされているため、ここではサニタイズとスラッシュ除去に集中
     $file_path = '';
-    if (isset($_FILES['jcalendar_import_file']['tmp_name']) && is_string($_FILES['jcalendar_import_file']['tmp_name'])) {
+    if (isset($_FILES['tintcal_import_file']['tmp_name']) && is_string($_FILES['tintcal_import_file']['tmp_name'])) {
         // phpcs:ignore WordPress.Security.ValidatedInput.InputNotValidated, WordPress.Security.ValidatedInput.MissingUnslash -- $_FILES array is handled by WordPress, and the path is sanitized.
-        $file_path = sanitize_text_field($_FILES['jcalendar_import_file']['tmp_name']);
+        $file_path = sanitize_text_field($_FILES['tintcal_import_file']['tmp_name']);
     }
 
     if (empty($file_path)) {
         // エラー処理（ファイルがない場合）
-        wp_safe_redirect(admin_url('admin.php?page=jcalendar-preference&import=error'));
+        wp_safe_redirect(admin_url('admin.php?page=tintcal-preference&import=error'));
         exit;
     }
 
@@ -1086,17 +975,17 @@ add_action('admin_init', function() {
     ) {
       // 形式が違う場合はエラー画面にリダイレクトして中止
       if (function_exists('wp_safe_redirect')) {
-        wp_safe_redirect(admin_url('admin.php?page=jcalendar-preference&import=error'));
+        wp_safe_redirect(admin_url('admin.php?page=tintcal-preference&import=error'));
         exit;
       } else {
-        header('Location: ' . admin_url('admin.php?page=jcalendar-preference&import=error'));
+        header('Location: ' . admin_url('admin.php?page=tintcal-preference&import=error'));
         exit;
       }
     }
     $newCategories = $data['categories'];
     
     // --- スラグ正規化・重複排除 ---
-    $currentCategories = get_option('jcalendar_categories', []);
+    $currentCategories = get_option('tintcal_categories', []);
     $slugMap = []; // 古い slug → 新しい slug を記録するマップ
     if (!is_array($currentCategories)) $currentCategories = [];
     $existingSlugs = array_column($currentCategories, 'slug');
@@ -1152,7 +1041,7 @@ add_action('admin_init', function() {
     if (!empty($newCategories) && !empty($newAssignments)) {
       $append = isset($_POST['import_append_mode']);
       // $currentCategories, $existingSlugs already loaded above
-      $currentAssignmentsRaw = get_option('jcalendar_date_categories', '{}');
+      $currentAssignmentsRaw = get_option('tintcal_date_categories', '{}');
       $currentAssignments = json_decode($currentAssignmentsRaw, true);
       $currentAssignments = is_array($currentAssignments) ? $currentAssignments : [];
       if ($append) {
@@ -1261,12 +1150,12 @@ add_action('admin_init', function() {
             $category['order'] = $index;
         }
         unset($category); // 参照を解除
-        update_option('jcalendar_categories', $reordered_categories);
+        update_option('tintcal_categories', $reordered_categories);
         $encoded = json_encode($mergedAssignments, JSON_UNESCAPED_UNICODE);
         if ($encoded === false) {
           $encoded = '{}'; // フォールバック
         }
-        update_option('jcalendar_date_categories', $encoded);
+        update_option('tintcal_date_categories', $encoded);
       } else {
         // 上書きモード: $newCategoriesはスラグ正規化済み
         // --- orderを再採番して重複をなくす ---
@@ -1275,22 +1164,22 @@ add_action('admin_init', function() {
             $category['order'] = $index;
         }
         unset($category); // 参照を解除
-        update_option('jcalendar_categories', $reordered_categories);
-        update_option('jcalendar_date_categories', json_encode($newAssignments, JSON_UNESCAPED_UNICODE));
+        update_option('tintcal_categories', $reordered_categories);
+        update_option('tintcal_date_categories', json_encode($newAssignments, JSON_UNESCAPED_UNICODE));
       }
       if (function_exists('wp_safe_redirect')) {
-        wp_safe_redirect(admin_url('admin.php?page=jcalendar-preference&import=success'));
+        wp_safe_redirect(admin_url('admin.php?page=tintcal-preference&import=success'));
         exit;
       } else {
-        header('Location: ' . admin_url('admin.php?page=jcalendar-preference&import=success'));
+        header('Location: ' . admin_url('admin.php?page=tintcal-preference&import=success'));
         exit;
       }
     } else {
       if (function_exists('wp_safe_redirect')) {
-        wp_safe_redirect(admin_url('admin.php?page=jcalendar-preference&import=error'));
+        wp_safe_redirect(admin_url('admin.php?page=tintcal-preference&import=error'));
         exit;
       } else {
-        header('Location: ' . admin_url('admin.php?page=jcalendar-preference&import=error'));
+        header('Location: ' . admin_url('admin.php?page=tintcal-preference&import=error'));
         exit;
       }
     }
@@ -1305,40 +1194,40 @@ add_action('admin_init', function() {
  * @param int|null $post_id カレンダーの投稿ID
  * @return string カレンダーのHTML
  */
-function jcalendar_render_calendar_base_html($post_id = null) {
+function tintcal_render_calendar_base_html($post_id = null) {
     if ($post_id) {
-        $start_day                 = get_post_meta($post_id, '_jcalendar_start_day', true) ?: get_option('jcalendar_start_day', 'sunday');
-        $show_header_weekend_color = get_post_meta($post_id, '_jcal_show_header_weekend_color', true);
-        if ($show_header_weekend_color === '') { $show_header_weekend_color = get_option('jcal_show_header_weekend_color', 1); }
-        $show_today_button         = get_post_meta($post_id, '_jcalendar_show_today_button', true);
-        if ($show_today_button === '') { $show_today_button = get_option('jcal_show_today_button', 1); }
+        $start_day                 = get_post_meta($post_id, '_tintcal_start_day', true) ?: get_option('tintcal_start_day', 'sunday');
+        $show_header_weekend_color = get_post_meta($post_id, '_tintcal_show_header_weekend_color', true);
+        if ($show_header_weekend_color === '') { $show_header_weekend_color = get_option('tintcal_show_header_weekend_color', 1); }
+        $show_today_button         = get_post_meta($post_id, '_tintcal_show_today_button', true);
+        if ($show_today_button === '') { $show_today_button = get_option('tintcal_show_today_button', 1); }
     } else {
-        $start_day                 = get_option('jcalendar_start_day', 'sunday');
-        $show_header_weekend_color = get_option('jcal_show_header_weekend_color', 1);
-        $show_today_button         = get_option('jcal_show_today_button', 1);
+        $start_day                 = get_option('tintcal_start_day', 'sunday');
+        $show_header_weekend_color = get_option('tintcal_show_header_weekend_color', 1);
+        $show_today_button         = get_option('tintcal_show_today_button', 1);
     }
 
     ob_start();
     ?>
-    <div class="mjc-calendar-container-inner">
-      <input type="hidden" class="jcalendar-start-day" value="<?php echo esc_attr($start_day); ?>">
-      <input type="hidden" class="jcalendar-show-header-weekend-color" value="<?php echo esc_attr($show_header_weekend_color); ?>">
+    <div class="tintcal-calendar-container-inner">
+      <input type="hidden" class="tintcal-start-day" value="<?php echo esc_attr($start_day); ?>">
+      <input type="hidden" class="tintcal-show-header-weekend-color" value="<?php echo esc_attr($show_header_weekend_color); ?>">
 
-      <div class="mjc-calendar-controls" style="display: flex; justify-content: space-between; align-items: center;">
+      <div class="tintcal-calendar-controls" style="display: flex; justify-content: space-between; align-items: center;">
         <div>
-          <button type="button" class="prev-month">＜ 前の月</button>
+          <button type="button" class="prev-month"><?php echo esc_html__( '＜ 前の月', 'tintcal' ); ?></button>
         </div>
         <div style="display: flex; align-items: center; gap: 15px;">
-          <span class="mjc-month-year"></span>
+          <span class="tintcal-month-year"></span>
           <?php if ($show_today_button == 1): ?>
-            <button type="button" class="back-to-today" style="font-size: 11px; padding: 2px 6px; height: auto;">今月に戻る</button>
+            <button type="button" class="back-to-today" style="font-size: 11px; padding: 2px 6px; height: auto;"><?php echo esc_html__( '今月に戻る', 'tintcal' ); ?></button>
           <?php endif; ?>
         </div>
         <div>
-          <button type="button" class="next-month">次の月 ＞</button>
+          <button type="button" class="next-month"><?php echo esc_html__( '次の月 ＞', 'tintcal' ); ?></button>
         </div>
       </div>
-      <table class="mjc-calendar" border="1" cellspacing="0" cellpadding="5">
+      <table class="tintcal-calendar" border="1" cellspacing="0" cellpadding="5">
         <thead><tr></tr></thead>
         <tbody></tbody>
       </table>
@@ -1355,41 +1244,41 @@ function jcalendar_render_calendar_base_html($post_id = null) {
 /**
  * 祝日更新のスケジュールイベント名
  */
-define('JCALENDAR_CRON_HOOK', 'jcalendar_daily_holiday_update_hook');
+define('TINTCAL_CRON_HOOK', 'tintcal_daily_holiday_update_hook');
 
 /**
  * WP-Cronのスケジュールに、祝日更新処理を紐付ける
  */
-add_action(JCALENDAR_CRON_HOOK, 'jcalendar_update_holiday_files');
+add_action(TINTCAL_CRON_HOOK, 'tintcal_update_holiday_files');
 
 /**
  * プラグイン有効化時に、祝日更新のスケジュールと、管理者権限の登録を行う関数
  */
-function jcalendar_schedule_holiday_update() {
+function tintcal_schedule_holiday_update() {
     // --- スケジュール登録 ---
-    if (!wp_next_scheduled(JCALENDAR_CRON_HOOK)) {
-        wp_schedule_event(time(), 'daily', JCALENDAR_CRON_HOOK);
+    if (!wp_next_scheduled(TINTCAL_CRON_HOOK)) {
+        wp_schedule_event(time(), 'daily', TINTCAL_CRON_HOOK);
     }
 
     // --- 管理者ロールにカスタム権限を付与 ---
     $role = get_role('administrator');
     if ($role) {
-        $jcal_caps = [
-            'edit_jcalendar',
-            'read_jcalendar',
-            'delete_jcalendar',
-            'edit_jcalendars',
-            'edit_others_jcalendars',
-            'publish_jcalendars',
-            'read_private_jcalendars',
-            'delete_jcalendars',
-            'delete_private_jcalendars',
-            'delete_published_jcalendars',
-            'delete_others_jcalendars',
-            'edit_private_jcalendars',
-            'edit_published_jcalendars',
+        $tintcal_caps = [
+            'edit_tintcal',
+            'read_tintcal',
+            'delete_tintcal',
+            'edit_tintcals',
+            'edit_others_tintcals',
+            'publish_tintcals',
+            'read_private_tintcals',
+            'delete_tintcals',
+            'delete_private_tintcals',
+            'delete_published_tintcals',
+            'delete_others_tintcals',
+            'edit_private_tintcals',
+            'edit_published_tintcals',
         ];
-        foreach ($jcal_caps as $cap) {
+        foreach ($tintcal_caps as $cap) {
             $role->add_cap($cap);
         }
     }
@@ -1398,12 +1287,12 @@ function jcalendar_schedule_holiday_update() {
 /**
  * プラグイン無効化時に、登録したスケジュールを解除する関数
  */
-function jcalendar_unschedule_holiday_update() {
-    wp_clear_scheduled_hook(JCALENDAR_CRON_HOOK);
+function tintcal_unschedule_holiday_update() {
+    wp_clear_scheduled_hook(TINTCAL_CRON_HOOK);
 }
 
 /**
  * プラグインの有効化・無効化フックに上記の関数を登録
  */
-register_activation_hook(__FILE__, 'jcalendar_schedule_holiday_update');
-register_deactivation_hook(__FILE__, 'jcalendar_unschedule_holiday_update');
+register_activation_hook(__FILE__, 'tintcal_schedule_holiday_update');
+register_deactivation_hook(__FILE__, 'tintcal_unschedule_holiday_update');
