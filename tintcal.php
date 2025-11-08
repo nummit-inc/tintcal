@@ -1343,19 +1343,19 @@ function tintcal_render_calendar_base_html($post_id = null) {
 
       <div class="tintcal-calendar-controls" style="display: flex; justify-content: space-between; align-items: center;">
         <div>
-          <button type="button" class="prev-month"><?php echo esc_html__( '＜ 前の月', 'tintcal' ); ?></button>
+          <button type="button" class="prev-month" aria-label="<?php echo esc_attr__( '前の月へ', 'tintcal' ); ?>"><?php echo esc_html__( '＜ 前の月', 'tintcal' ); ?></button>
         </div>
         <div style="display: flex; align-items: center; gap: 15px;">
-          <span class="tintcal-month-year"></span>
+          <span class="tintcal-month-year" role="status" aria-live="polite"></span>
           <?php if ($show_today_button == 1): ?>
-            <button type="button" class="back-to-today" style="font-size: 11px; padding: 2px 6px; height: auto;"><?php echo esc_html__( '今月に戻る', 'tintcal' ); ?></button>
+            <button type="button" class="back-to-today" style="font-size: 11px; padding: 2px 6px; height: auto;" aria-label="<?php echo esc_attr__( '今月に戻る', 'tintcal' ); ?>"><?php echo esc_html__( '今月に戻る', 'tintcal' ); ?></button>
           <?php endif; ?>
         </div>
         <div>
-          <button type="button" class="next-month"><?php echo esc_html__( '次の月 ＞', 'tintcal' ); ?></button>
+          <button type="button" class="next-month" aria-label="<?php echo esc_attr__( '次の月へ', 'tintcal' ); ?>"><?php echo esc_html__( '次の月 ＞', 'tintcal' ); ?></button>
         </div>
       </div>
-      <table class="tintcal-calendar" border="1" cellspacing="0" cellpadding="5">
+      <table class="tintcal-calendar" role="grid" aria-label="<?php echo esc_attr__( 'カレンダー', 'tintcal' ); ?>" border="1" cellspacing="0" cellpadding="5">
         <thead><tr></tr></thead>
         <tbody></tbody>
       </table>
