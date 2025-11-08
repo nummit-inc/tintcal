@@ -361,24 +361,34 @@ function tintcal_build_js_data_for_admin($post_id = null) {
     $assignments_decoded = json_decode($assignments_raw, true);
     $js_data['assignments'] = (json_last_error() === JSON_ERROR_NONE && is_array($assignments_decoded)) ? $assignments_decoded : [];
     
-    // 祝日データを年ごとに読み込む
-    $holidays_by_year = [];
+    // 祝日データを年ごとに読み込む（Transient APIでキャッシュ）
     $current_year = (int)date_i18n('Y');
     $years_to_load = [$current_year, $current_year + 1, $current_year + 2];
     $locale = 'ja';
     $upload_dir = wp_upload_dir();
-    $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
 
-    foreach ($years_to_load as $year) {
-        $file_path = "{$tintcal_dir}/{$locale}/{$year}.json";
-        $json_content = tintcal_read_file($file_path);
-        if ($json_content !== false) {
-            $holiday_data = json_decode($json_content, true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($holiday_data)) {
-                $holidays_by_year[$year] = $holiday_data;
+    $cache_key = 'tintcal_holidays_' . implode('_', $years_to_load);
+    $holidays_by_year = get_transient($cache_key);
+
+    if (false === $holidays_by_year) {
+        $holidays_by_year = [];
+        $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
+
+        foreach ($years_to_load as $year) {
+            $file_path = "{$tintcal_dir}/{$locale}/{$year}.json";
+            $json_content = tintcal_read_file($file_path);
+            if ($json_content !== false) {
+                $holiday_data = json_decode($json_content, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($holiday_data)) {
+                    $holidays_by_year[$year] = $holiday_data;
+                }
             }
         }
+
+        // Cache for 1 day
+        set_transient($cache_key, $holidays_by_year, DAY_IN_SECONDS);
     }
+
     $js_data['holidays'] = $holidays_by_year;
     $js_data['locale'] = $locale;
     $js_data['holidayJsonUrl'] = $upload_dir['baseurl'] . '/tintcal-holidays';
@@ -475,23 +485,32 @@ function tintcal_build_js_data_for_frontend($post_id) {
         $assignments_decoded = json_decode($assignments_raw, true);
         $js_data['assignments'] = (json_last_error() === JSON_ERROR_NONE && is_array($assignments_decoded)) ? $assignments_decoded : [];
 
-        // 祝日ファイル
-        $holidays_by_year = [];
+        // 祝日ファイル（Transient APIでキャッシュ）
         $current_year = (int)date_i18n('Y');
         $years_to_load = [$current_year, $current_year + 1, $current_year + 2];
         $locale = 'ja';
         $upload_dir = wp_upload_dir();
-        $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
-        foreach ($years_to_load as $year) {
-            $file_path = "{$tintcal_dir}/{$locale}/{$year}.json";
-            $json_content = tintcal_read_file($file_path);
-            if ($json_content !== false) {
-                $holiday_data = json_decode($json_content, true);
-                if (json_last_error() === JSON_ERROR_NONE && is_array($holiday_data)) {
-                    $holidays_by_year[$year] = $holiday_data;
+
+        $cache_key = 'tintcal_holidays_' . implode('_', $years_to_load);
+        $holidays_by_year = get_transient($cache_key);
+
+        if (false === $holidays_by_year) {
+            $holidays_by_year = [];
+            $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
+            foreach ($years_to_load as $year) {
+                $file_path = "{$tintcal_dir}/{$locale}/{$year}.json";
+                $json_content = tintcal_read_file($file_path);
+                if ($json_content !== false) {
+                    $holiday_data = json_decode($json_content, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($holiday_data)) {
+                        $holidays_by_year[$year] = $holiday_data;
+                    }
                 }
             }
+            // Cache for 1 day
+            set_transient($cache_key, $holidays_by_year, DAY_IN_SECONDS);
         }
+
         $js_data['holidays'] = $holidays_by_year;
         $js_data['locale'] = $locale;
         $js_data['holidayJsonUrl'] = $upload_dir['baseurl'] . '/tintcal-holidays';
@@ -554,26 +573,35 @@ function tintcal_build_js_data_for_frontend($post_id) {
     $assignments_decoded = json_decode($assignments_raw, true);
     $js_data['assignments'] = (json_last_error() === JSON_ERROR_NONE && is_array($assignments_decoded)) ? $assignments_decoded : [];
 
-    // --- 祝日データを読み込んでJSに渡す ---
-    $holidays_by_year = [];
+    // --- 祝日データを読み込んでJSに渡す（Transient APIでキャッシュ） ---
     $current_year = (int)date_i18n('Y');
     $years_to_load = [$current_year, $current_year + 1, $current_year + 2];
     $locale = 'ja';
     $upload_dir = wp_upload_dir();
-    $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
 
-    foreach ($years_to_load as $year) {
-        $file_path = "{$tintcal_dir}/{$locale}/{$year}.json";
-        $json_content = tintcal_read_file($file_path);
-        if ($json_content !== false) {
-            $holiday_data = json_decode($json_content, true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($holiday_data)) {
-                $holidays_by_year[$year] = $holiday_data;
+    $cache_key = 'tintcal_holidays_' . implode('_', $years_to_load);
+    $holidays_by_year = get_transient($cache_key);
+
+    if (false === $holidays_by_year) {
+        $holidays_by_year = [];
+        $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
+
+        foreach ($years_to_load as $year) {
+            $file_path = "{$tintcal_dir}/{$locale}/{$year}.json";
+            $json_content = tintcal_read_file($file_path);
+            if ($json_content !== false) {
+                $holiday_data = json_decode($json_content, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($holiday_data)) {
+                    $holidays_by_year[$year] = $holiday_data;
+                }
             }
         }
+        // Cache for 1 day
+        set_transient($cache_key, $holidays_by_year, DAY_IN_SECONDS);
     }
+
     $js_data['holidays'] = $holidays_by_year;
-    $js_data['locale'] = $locale; // 3. ▼▼▼ JS側で使うためlocaleも渡す ▼▼▼
+    $js_data['locale'] = $locale;
     $js_data['holidayJsonUrl'] = $upload_dir['baseurl'] . '/tintcal-holidays';
 
     return $js_data;
@@ -878,7 +906,13 @@ add_action('wp_ajax_get_tintcal_assignments', function () {
 add_action('wp_ajax_reload_tintcal_holidays', function () {
     tintcal_ajax_security_check();
   // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedInput.InputNotValidated, WordPress.Security.ValidatedInput.InputNotSanitized -- Nonce check handled by tintcal_ajax_security_check(). No user input is directly processed.
-    
+
+    // Clear holiday data cache before updating
+    $current_year = (int)date_i18n('Y');
+    $years_to_load = [$current_year, $current_year + 1, $current_year + 2];
+    $cache_key = 'tintcal_holidays_' . implode('_', $years_to_load);
+    delete_transient($cache_key);
+
     // 祝日ファイル更新処理を実行
     $results = tintcal_update_holiday_files(true);
 
