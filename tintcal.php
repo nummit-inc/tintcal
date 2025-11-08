@@ -191,10 +191,13 @@ add_action('admin_init', function() {
 });
 
 /**
- * 表示用のカテゴリリストを取得・整理して返すヘルパー関数
- * - DBからカテゴリを取得
- * - order順にソート
- * @return array 整頓済みのカテゴリ配列
+ * Get displayable categories sorted by order
+ *
+ * Retrieves categories from database and sorts them by the order property.
+ * Used throughout the plugin for consistent category display order.
+ *
+ * @since 2.2.2
+ * @return array Sorted array of category objects
  */
 function tintcal_get_displayable_categories() {
     // 1. DBからカテゴリを取得
@@ -219,7 +222,14 @@ function tintcal_get_displayable_categories() {
 // =============================
 
 /**
- * 個別カレンダー設定画面のレンダリングと保存処理
+ * Render preference page for calendar settings
+ *
+ * Handles both rendering and saving of calendar preferences including
+ * colors, display options, and category settings. Includes UUID migration
+ * for existing categories without slug field.
+ *
+ * @since 2.2.2
+ * @return void
  */
 function tintcal_render_preference_page() {
     
@@ -690,10 +700,13 @@ function tintcal_display_calendar() {
 // =============================
 
 /**
- * TintCal用のAJAXセキュリティチェック共通関数
- * - 投稿の編集権限（edit_posts）をチェック
- * - Nonceをチェック
- * チェックに失敗した場合は、JSONエラーを返して処理を中断します。
+ * Common AJAX security check for TintCal operations
+ *
+ * Performs nonce verification and capability checking for all AJAX requests.
+ * Sends JSON error response and terminates execution if checks fail.
+ *
+ * @since 2.2.2
+ * @return void Terminates with JSON error if security checks fail
  */
 function tintcal_ajax_security_check() {
   check_ajax_referer('tintcal_settings_nonce');
@@ -1300,11 +1313,14 @@ add_action('admin_init', function() {
 
 
 /**
- * カレンダーの基本HTML構造を出力する
- * IDが渡された場合は、そのカレンダーの個別設定を反映する
+ * Render base HTML structure for calendar display
  *
- * @param int|null $post_id カレンダーの投稿ID
- * @return string カレンダーのHTML
+ * Generates the HTML skeleton for a calendar instance. If a post ID is provided,
+ * uses that calendar's individual settings; otherwise uses global settings.
+ *
+ * @since 2.2.2
+ * @param int|null $post_id Optional. Calendar post ID for individual settings
+ * @return string HTML markup for calendar container
  */
 function tintcal_render_calendar_base_html($post_id = null) {
     if ($post_id) {
