@@ -54,8 +54,6 @@ class TintCal {
      * @param {object} settings - PHPから渡される、このカレンダー専用の設定オブジェクト
      */
     constructor(selector, settings) {
-        console.log('TintCal instance created for:', selector);
-        console.log('Received settings:', settings);
         this.container = document.querySelector(selector);
         if (!this.container) {
             console.error(`TintCal Error: Container element "${selector}" not found.`);
