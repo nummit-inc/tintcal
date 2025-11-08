@@ -1,0 +1,16 @@
+# === Basic PHP / WordPress Plugin ===
+vendor/
+composer.lock
+*.log
+*.cache
+.env
+
+# === OS / Editor files ===
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# === Node or build (if added later) ===
+node_modules/
+dist/
