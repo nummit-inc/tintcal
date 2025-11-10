@@ -42,8 +42,55 @@
     if (typeof window.drawCalendar === 'function') {
       window.drawCalendar();
     }
+    // カテゴリ数に応じて追加フォームを制御
+    updateAddCategoryFormState();
   }
   window.updateUI = updateUI; // グローバルに公開
+
+  // =============================
+  // カテゴリ追加フォームの有効/無効制御
+  // =============================
+  function updateAddCategoryFormState() {
+    const categories = loadCategories();
+    const nameInput = document.querySelector("#new-category-name");
+    const colorInput = document.querySelector("#new-category-color");
+    const addBtn = document.querySelector("#add-category");
+
+    if (!nameInput || !colorInput || !addBtn) return;
+
+    if (categories.length >= 1) {
+      // 既に1件ある場合：フォームを無効化
+      nameInput.disabled = true;
+      colorInput.disabled = true;
+      addBtn.disabled = true;
+      nameInput.placeholder = "無料版は1カテゴリのみです";
+      nameInput.value = "";
+
+      // メッセージ表示（既存のメッセージがなければ追加）
+      let message = document.querySelector("#tintcal-category-limit-message");
+      if (!message) {
+        message = document.createElement("p");
+        message.id = "tintcal-category-limit-message";
+        message.style.color = "#666";
+        message.style.fontSize = "13px";
+        message.style.marginTop = "8px";
+        message.textContent = "無料版は1カテゴリのみです。既存カテゴリを編集するか、削除後に新規追加してください。";
+        addBtn.parentElement.appendChild(message);
+      }
+    } else {
+      // カテゴリがない場合：フォームを有効化
+      nameInput.disabled = false;
+      colorInput.disabled = false;
+      addBtn.disabled = false;
+      nameInput.placeholder = "カテゴリ名（1件のみ）";
+
+      // メッセージを削除
+      const message = document.querySelector("#tintcal-category-limit-message");
+      if (message) {
+        message.remove();
+      }
+    }
+  }
 
   // =============================
   // カテゴリテーブル描画・UI系関数
@@ -200,27 +247,28 @@
     if (addCategoryBtn) {
       addCategoryBtn.onclick = async function () {
         let categoriesArr = loadCategories();
+
+        // 無料版：既に1件ある場合は追加不可
+        if (categoriesArr.length >= 1) {
+          alert("無料版は1カテゴリのみです。既存カテゴリを削除してから新規追加するか、編集ボタンで既存カテゴリを変更してください。");
+          return;
+        }
+
         const name = nameInput.value.trim();
         const color = colorInput.value;
         if (!name) { alert("カテゴリ名を入力してください"); return; }
-        // 既存1件があれば上書き、なければ新規1件を作成
-        if (categoriesArr.length >= 1) {
-          const first = categoriesArr[0];
-          // 同名でも許容。単一カテゴリのため競合は発生しない
-          first.name = name;
-          first.color = color;
-          categoriesArr = [first]; // 念のため1件に制限
-        } else {
-          const newCat = {
-            id: 1,
-            name: name,
-            color: color,
-            order: 1,
-            slug: generateUUIDv4(),
-            visible: true
-          };
-          categoriesArr = [newCat];
-        }
+
+        // 新規カテゴリを作成
+        const newCat = {
+          id: 1,
+          name: name,
+          color: color,
+          order: 1,
+          slug: generateUUIDv4(),
+          visible: true
+        };
+        categoriesArr = [newCat];
+
         if (await saveCategories(categoriesArr)) {
           await fetchAllDataFromServer();
           updateUI();
@@ -228,6 +276,9 @@
         }
       };
     }
+
+    // 初期ロード時にもフォーム状態を更新
+    updateAddCategoryFormState();
   }
 
   function loadCategories() {
