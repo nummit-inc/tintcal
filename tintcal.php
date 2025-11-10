@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 Plugin Name:      TintCal
 Plugin URI:       https://tintcal.com
 Description:      「定休日」や「イベント日」といった予定を自由に設定し、日付をカラフルに色分け。日本の祝日にも対応した、見た目がわかりやすいオリジナルカレンダーを作成できます。
-Version:          2.2.2
+Version:          2.2.3
 Requires at least: 5.8
 Requires PHP:     7.4
 Author:           QuantaLumina
@@ -16,7 +16,7 @@ Domain Path:      /languages
 */
 
 
-define('TINTCAL_VERSION', '2.2.2');
+define('TINTCAL_VERSION', '2.2.3');
 define('TINTCAL_FREE_MAX_CATEGORIES', 1); // Free version supports only 1 category
 
 

@@ -51,14 +51,29 @@
   // カテゴリ追加フォームの有効/無効制御
   // =============================
   function updateAddCategoryFormState() {
+    console.log('[TintCal Debug] updateAddCategoryFormState() called');
+
     const categories = loadCategories();
+    console.log('[TintCal Debug] categories.length:', categories.length);
+    console.log('[TintCal Debug] categories:', categories);
+
     const nameInput = document.querySelector("#new-category-name");
     const colorInput = document.querySelector("#new-category-color");
     const addBtn = document.querySelector("#add-category");
 
-    if (!nameInput || !colorInput || !addBtn) return;
+    console.log('[TintCal Debug] DOM elements found:', {
+      nameInput: !!nameInput,
+      colorInput: !!colorInput,
+      addBtn: !!addBtn
+    });
+
+    if (!nameInput || !colorInput || !addBtn) {
+      console.log('[TintCal Debug] Early return - DOM elements not found');
+      return;
+    }
 
     if (categories.length >= 1) {
+      console.log('[TintCal Debug] Disabling form (categories.length >= 1)');
       // 既に1件ある場合：フォームを無効化
       nameInput.disabled = true;
       colorInput.disabled = true;
@@ -77,7 +92,9 @@
         message.textContent = "無料版は1カテゴリのみです。既存カテゴリを編集するか、削除後に新規追加してください。";
         addBtn.parentElement.appendChild(message);
       }
+      console.log('[TintCal Debug] Form disabled successfully');
     } else {
+      console.log('[TintCal Debug] Enabling form (no categories)');
       // カテゴリがない場合：フォームを有効化
       nameInput.disabled = false;
       colorInput.disabled = false;
@@ -89,6 +106,7 @@
       if (message) {
         message.remove();
       }
+      console.log('[TintCal Debug] Form enabled successfully');
     }
   }
 
