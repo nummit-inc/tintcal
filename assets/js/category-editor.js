@@ -136,6 +136,7 @@
       });
 
     bindCategoryEvents();
+    updateAddCategoryFormState(); // カテゴリ数に応じてフォーム状態を更新
   }
   window.renderCategoryTable = renderCategoryTable; // グローバルに公開
 
