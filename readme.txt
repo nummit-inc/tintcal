@@ -4,7 +4,7 @@ Tags: calendar, events, schedule, holiday, business hours
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.2.2
+Stable tag: 2.2.3
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,7 +44,7 @@ For basic questions, please use the official support forums on WordPress.org.
 Temporarily disable cache/optimization plugins (JS/CSS minification, lazy loading) and any CDN. If the issue persists, switch to a default theme (e.g., Twenty Twenty-Five) to check for theme/plugin conflicts. Please include exact reproduction steps.
 
 = The update installed but nothing changed =
-Clear browser, server, and plugin caches, and purge your CDN if you use one. Confirm the Plugins screen shows “Version: 2.2.1”.
+Clear browser, server, and plugin caches, and purge your CDN if you use one. Confirm the Plugins screen shows "Version: 2.2.3".
 
 = What information should I include in a bug report? =
 - WordPress and PHP versions (e.g., WP 6.6 / PHP 8.1)
@@ -61,6 +61,15 @@ Clear browser, server, and plugin caches, and purge your CDN if you use one. Con
 4.  The base settings screen.
 
 == Changelog ==
+
+= 2.2.3 =
+*   Fix: Category override bug in free version - form now properly disables when 1 category limit is reached
+*   Improvement: Enhanced security with WP_Filesystem API and proper fallback
+*   Improvement: Performance optimization with Transient API caching for holiday data
+*   Improvement: Added comprehensive PHPDoc documentation
+*   Improvement: Enhanced accessibility with ARIA attributes
+*   Improvement: Improved maintainability with CSS custom properties
+*   Technical: Added automated deployment workflow for WordPress.org
 
 = 2.2.2 =
 *   Fix: incorrect calendar layout in some themes.
