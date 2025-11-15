@@ -1,8 +1,19 @@
 /* calendar.css - J-Calendar Plugin Style */
 
+:root {
+  --tintcal-max-width: 500px;
+  --tintcal-spacing-default: 20px;
+  --tintcal-spacing-small: 10px;
+  --tintcal-border-color: #ccc;
+  --tintcal-bg-white: #fff;
+  --tintcal-bg-hover: #f0f0f0;
+  --tintcal-cell-width: 14.28%; /* 100% / 7 days */
+  --tintcal-cell-height: 50px;
+}
+
 .tintcal-calendar-container {
-  max-width: 500px;
-  margin: 20px auto;
+  max-width: var(--tintcal-max-width);
+  margin: var(--tintcal-spacing-default) auto;
   font-family: sans-serif;
 }
 
@@ -10,7 +21,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: var(--tintcal-spacing-small);
 }
 
 .tintcal-calendar {
@@ -20,21 +31,21 @@
 
 .tintcal-calendar th,
 .tintcal-calendar td {
-  border: 1px solid #ccc;
-  width: 14.28%;
-  height: 50px;
+  border: 1px solid var(--tintcal-border-color);
+  width: var(--tintcal-cell-width);
+  height: var(--tintcal-cell-height);
   text-align: center;
   vertical-align: middle;
 }
 
 .tintcal-calendar td {
-  background-color: #fff;
+  background-color: var(--tintcal-bg-white);
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .tintcal-calendar td:hover {
-  background-color: #f0f0f0;
+  background-color: var(--tintcal-bg-hover);
 }
 
 .tintcal-calendar td[title] {

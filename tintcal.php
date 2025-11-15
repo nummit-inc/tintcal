@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 Plugin Name:      TintCal
 Plugin URI:       https://tintcal.com
 Description:      「定休日」や「イベント日」といった予定を自由に設定し、日付をカラフルに色分け。日本の祝日にも対応した、見た目がわかりやすいオリジナルカレンダーを作成できます。
-Version:          2.2.2
+Version:          2.2.3
 Requires at least: 5.8
 Requires PHP:     7.4
 Author:           QuantaLumina
@@ -16,7 +16,8 @@ Domain Path:      /languages
 */
 
 
-define('TINTCAL_VERSION', '2.2.2');
+define('TINTCAL_VERSION', '2.2.3');
+define('TINTCAL_FREE_MAX_CATEGORIES', 1); // Free version supports only 1 category
 
 
 
@@ -29,6 +30,65 @@ require_once $tintcal_includes_path . 'list-view-tintcal.php';
 require_once $tintcal_includes_path . 'post-type-tintcal.php';
 require_once $tintcal_includes_path . 'shortcode-frontend-tintcal.php';
 
+// =============================
+// WP_Filesystem Helper Functions
+// =============================
+
+/**
+ * Initialize WP_Filesystem with fallback to direct file operations
+ *
+ * @return WP_Filesystem_Base|false Filesystem object or false on failure
+ */
+function tintcal_get_filesystem() {
+    global $wp_filesystem;
+
+    if (empty($wp_filesystem)) {
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        WP_Filesystem();
+    }
+
+    return $wp_filesystem;
+}
+
+/**
+ * Read file contents using WP_Filesystem with fallback
+ *
+ * @param string $file_path Path to file
+ * @return string|false File contents or false on failure
+ */
+function tintcal_read_file($file_path) {
+    $filesystem = tintcal_get_filesystem();
+
+    if ($filesystem && $filesystem->exists($file_path)) {
+        return $filesystem->get_contents($file_path);
+    }
+
+    // Fallback to direct file access if WP_Filesystem fails
+    if (file_exists($file_path) && is_readable($file_path)) {
+        return file_get_contents($file_path);
+    }
+
+    return false;
+}
+
+/**
+ * Write file contents using WP_Filesystem with fallback
+ *
+ * @param string $file_path Path to file
+ * @param string $content Content to write
+ * @return bool True on success, false on failure
+ */
+function tintcal_write_file($file_path, $content) {
+    $filesystem = tintcal_get_filesystem();
+
+    if ($filesystem) {
+        return $filesystem->put_contents($file_path, $content, FS_CHMOD_FILE);
+    }
+
+    // Fallback to direct file access if WP_Filesystem fails
+    $result = file_put_contents($file_path, $content);
+    return $result !== false;
+}
 
 // =============================
 // 管理画面用の通知・メニュー登録
@@ -131,10 +191,13 @@ add_action('admin_init', function() {
 });
 
 /**
- * 表示用のカテゴリリストを取得・整理して返すヘルパー関数
- * - DBからカテゴリを取得
- * - order順にソート
- * @return array 整頓済みのカテゴリ配列
+ * Get displayable categories sorted by order
+ *
+ * Retrieves categories from database and sorts them by the order property.
+ * Used throughout the plugin for consistent category display order.
+ *
+ * @since 2.2.2
+ * @return array Sorted array of category objects
  */
 function tintcal_get_displayable_categories() {
     // 1. DBからカテゴリを取得
@@ -159,7 +222,14 @@ function tintcal_get_displayable_categories() {
 // =============================
 
 /**
- * 個別カレンダー設定画面のレンダリングと保存処理
+ * Render preference page for calendar settings
+ *
+ * Handles both rendering and saving of calendar preferences including
+ * colors, display options, and category settings. Includes UUID migration
+ * for existing categories without slug field.
+ *
+ * @since 2.2.2
+ * @return void
  */
 function tintcal_render_preference_page() {
     
@@ -295,28 +365,40 @@ function tintcal_build_js_data_for_admin($post_id = null) {
     $js_data['ajaxUrl']     = admin_url('admin-ajax.php');
     $js_data['nonce']       = wp_create_nonce('tintcal_settings_nonce');
     $js_data['categories'] = tintcal_get_displayable_categories();
-    $js_data['assignments'] = json_decode(get_option('tintcal_date_categories', '{}'), true) ?: [];
+
+    // JSON decode with error handling
+    $assignments_raw = get_option('tintcal_date_categories', '{}');
+    $assignments_decoded = json_decode($assignments_raw, true);
+    $js_data['assignments'] = (json_last_error() === JSON_ERROR_NONE && is_array($assignments_decoded)) ? $assignments_decoded : [];
     
-    // 祝日データを年ごとに読み込む
-    $holidays_by_year = [];
+    // 祝日データを年ごとに読み込む（Transient APIでキャッシュ）
     $current_year = (int)date_i18n('Y');
     $years_to_load = [$current_year, $current_year + 1, $current_year + 2];
     $locale = 'ja';
     $upload_dir = wp_upload_dir();
-    $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
 
-    foreach ($years_to_load as $year) {
-        $file_path = "{$tintcal_dir}/{$locale}/{$year}.json";
-        if (file_exists($file_path)) {
-            $json_content = file_get_contents($file_path);
+    $cache_key = 'tintcal_holidays_' . implode('_', $years_to_load);
+    $holidays_by_year = get_transient($cache_key);
+
+    if (false === $holidays_by_year) {
+        $holidays_by_year = [];
+        $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
+
+        foreach ($years_to_load as $year) {
+            $file_path = "{$tintcal_dir}/{$locale}/{$year}.json";
+            $json_content = tintcal_read_file($file_path);
             if ($json_content !== false) {
                 $holiday_data = json_decode($json_content, true);
-                if (is_array($holiday_data)) {
+                if (json_last_error() === JSON_ERROR_NONE && is_array($holiday_data)) {
                     $holidays_by_year[$year] = $holiday_data;
                 }
             }
         }
+
+        // Cache for 1 day
+        set_transient($cache_key, $holidays_by_year, DAY_IN_SECONDS);
     }
+
     $js_data['holidays'] = $holidays_by_year;
     $js_data['locale'] = $locale;
     $js_data['holidayJsonUrl'] = $upload_dir['baseurl'] . '/tintcal-holidays';
@@ -407,26 +489,38 @@ function tintcal_build_js_data_for_frontend($post_id) {
         $js_data['ajaxUrl']     = admin_url('admin-ajax.php');
         $js_data['nonce']       = wp_create_nonce('tintcal_settings_nonce');
         $js_data['categories']  = tintcal_get_displayable_categories();
-        $js_data['assignments'] = json_decode(get_option('tintcal_date_categories', '{}'), true) ?: [];
-        // 祝日ファイル
-        $holidays_by_year = [];
+
+        // JSON decode with error handling
+        $assignments_raw = get_option('tintcal_date_categories', '{}');
+        $assignments_decoded = json_decode($assignments_raw, true);
+        $js_data['assignments'] = (json_last_error() === JSON_ERROR_NONE && is_array($assignments_decoded)) ? $assignments_decoded : [];
+
+        // 祝日ファイル（Transient APIでキャッシュ）
         $current_year = (int)date_i18n('Y');
         $years_to_load = [$current_year, $current_year + 1, $current_year + 2];
         $locale = 'ja';
         $upload_dir = wp_upload_dir();
-        $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
-        foreach ($years_to_load as $year) {
-            $file_path = "{$tintcal_dir}/{$locale}/{$year}.json";
-            if (file_exists($file_path)) {
-                $json_content = file_get_contents($file_path);
+
+        $cache_key = 'tintcal_holidays_' . implode('_', $years_to_load);
+        $holidays_by_year = get_transient($cache_key);
+
+        if (false === $holidays_by_year) {
+            $holidays_by_year = [];
+            $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
+            foreach ($years_to_load as $year) {
+                $file_path = "{$tintcal_dir}/{$locale}/{$year}.json";
+                $json_content = tintcal_read_file($file_path);
                 if ($json_content !== false) {
                     $holiday_data = json_decode($json_content, true);
-                    if (is_array($holiday_data)) {
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($holiday_data)) {
                         $holidays_by_year[$year] = $holiday_data;
                     }
                 }
             }
+            // Cache for 1 day
+            set_transient($cache_key, $holidays_by_year, DAY_IN_SECONDS);
         }
+
         $js_data['holidays'] = $holidays_by_year;
         $js_data['locale'] = $locale;
         $js_data['holidayJsonUrl'] = $upload_dir['baseurl'] . '/tintcal-holidays';
@@ -483,28 +577,41 @@ function tintcal_build_js_data_for_frontend($post_id) {
     $js_data['ajaxUrl']     = admin_url('admin-ajax.php');
     $js_data['nonce']       = wp_create_nonce('tintcal_settings_nonce');
     $js_data['categories'] = tintcal_get_displayable_categories();
-    $js_data['assignments'] = json_decode(get_option('tintcal_date_categories', '{}'), true) ?: [];
 
-    // --- 祝日データを読み込んでJSに渡す ---
-    $holidays_by_year = [];
+    // JSON decode with error handling
+    $assignments_raw = get_option('tintcal_date_categories', '{}');
+    $assignments_decoded = json_decode($assignments_raw, true);
+    $js_data['assignments'] = (json_last_error() === JSON_ERROR_NONE && is_array($assignments_decoded)) ? $assignments_decoded : [];
+
+    // --- 祝日データを読み込んでJSに渡す（Transient APIでキャッシュ） ---
     $current_year = (int)date_i18n('Y');
     $years_to_load = [$current_year, $current_year + 1, $current_year + 2];
     $locale = 'ja';
     $upload_dir = wp_upload_dir();
-    $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
 
-    foreach ($years_to_load as $year) {
-        $file_path = "{$tintcal_dir}/{$locale}/{$year}.json";
-        if (file_exists($file_path)) {
-            $json_content = file_get_contents($file_path);
-            $holiday_data = json_decode($json_content, true);
-            if (is_array($holiday_data)) {
-                $holidays_by_year[$year] = $holiday_data;
+    $cache_key = 'tintcal_holidays_' . implode('_', $years_to_load);
+    $holidays_by_year = get_transient($cache_key);
+
+    if (false === $holidays_by_year) {
+        $holidays_by_year = [];
+        $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
+
+        foreach ($years_to_load as $year) {
+            $file_path = "{$tintcal_dir}/{$locale}/{$year}.json";
+            $json_content = tintcal_read_file($file_path);
+            if ($json_content !== false) {
+                $holiday_data = json_decode($json_content, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($holiday_data)) {
+                    $holidays_by_year[$year] = $holiday_data;
+                }
             }
         }
+        // Cache for 1 day
+        set_transient($cache_key, $holidays_by_year, DAY_IN_SECONDS);
     }
+
     $js_data['holidays'] = $holidays_by_year;
-    $js_data['locale'] = $locale; // 3. ▼▼▼ JS側で使うためlocaleも渡す ▼▼▼
+    $js_data['locale'] = $locale;
     $js_data['holidayJsonUrl'] = $upload_dir['baseurl'] . '/tintcal-holidays';
 
     return $js_data;
@@ -593,10 +700,13 @@ function tintcal_display_calendar() {
 // =============================
 
 /**
- * TintCal用のAJAXセキュリティチェック共通関数
- * - 投稿の編集権限（edit_posts）をチェック
- * - Nonceをチェック
- * チェックに失敗した場合は、JSONエラーを返して処理を中断します。
+ * Common AJAX security check for TintCal operations
+ *
+ * Performs nonce verification and capability checking for all AJAX requests.
+ * Sends JSON error response and terminates execution if checks fail.
+ *
+ * @since 2.2.2
+ * @return void Terminates with JSON error if security checks fail
  */
 function tintcal_ajax_security_check() {
   check_ajax_referer('tintcal_settings_nonce');
@@ -637,7 +747,7 @@ add_action('wp_ajax_save_tintcal_categories', function () {
 
   // プラグイン仕様：シングルカテゴリのみサポート
   $tintcal_trimmed_to_single = false;
-  if (count($parsed) > 1) {
+  if (count($parsed) > TINTCAL_FREE_MAX_CATEGORIES) {
       // 2件目以降は無視して、先頭の1件だけを保存対象にする（UIは別途で1件仕様に合わせる）
       $parsed = [ reset($parsed) ];
       $tintcal_trimmed_to_single = true;
@@ -675,9 +785,9 @@ add_action('wp_ajax_save_tintcal_categories', function () {
   $is_confirmed = !empty($_POST['confirmed']);
 
   if (
-      count($existing_categories) > 1 &&                       // DBには2つ以上のカテゴリがあり
-      count($parsed) <= 1 &&                                   // 保存しようとしているデータは1つ以下で
-      !$is_confirmed                               // かつ、まだユーザーの確認を得ていない場合
+      count($existing_categories) > TINTCAL_FREE_MAX_CATEGORIES &&  // DBには複数のカテゴリがあり
+      count($parsed) <= TINTCAL_FREE_MAX_CATEGORIES &&               // 保存しようとしているデータは上限以下で
+      !$is_confirmed                                                 // かつ、まだユーザーの確認を得ていない場合
   ) {
       // 保存せずに、JavaScriptに確認を促すエラーを返す
       wp_send_json_error([
@@ -774,14 +884,19 @@ add_action('wp_ajax_save_tintcal_holidays', function () {
   }
 
   $json = wp_json_encode($sanitized_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-  
+
   $upload_dir = wp_upload_dir();
   $tintcal_dir = $upload_dir['basedir'] . '/tintcal-holidays';
   $locale_dir = "{$tintcal_dir}/{$locale}";
   wp_mkdir_p($locale_dir);
   $file_path = $locale_dir . "/$year.json";
-  file_put_contents($file_path, $json);
-  wp_send_json_success(['saved' => true, 'file' => $file_path]);
+
+  $write_result = tintcal_write_file($file_path, $json);
+  if ($write_result) {
+      wp_send_json_success(['saved' => true, 'file' => $file_path]);
+  } else {
+      wp_send_json_error(['message' => esc_html__('ファイルの書き込みに失敗しました', 'tintcal')]);
+  }
 });
 
 add_action('wp_ajax_get_tintcal_categories', function () {
@@ -804,7 +919,13 @@ add_action('wp_ajax_get_tintcal_assignments', function () {
 add_action('wp_ajax_reload_tintcal_holidays', function () {
     tintcal_ajax_security_check();
   // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedInput.InputNotValidated, WordPress.Security.ValidatedInput.InputNotSanitized -- Nonce check handled by tintcal_ajax_security_check(). No user input is directly processed.
-    
+
+    // Clear holiday data cache before updating
+    $current_year = (int)date_i18n('Y');
+    $years_to_load = [$current_year, $current_year + 1, $current_year + 2];
+    $cache_key = 'tintcal_holidays_' . implode('_', $years_to_load);
+    delete_transient($cache_key);
+
     // 祝日ファイル更新処理を実行
     $results = tintcal_update_holiday_files(true);
 
@@ -818,13 +939,11 @@ add_action('wp_ajax_reload_tintcal_holidays', function () {
 
     foreach ($years_to_load as $year) {
         $file_path = "{$tintcal_dir}/{$locale}/{$year}.json";
-        if (file_exists($file_path)) {
-            $json_content = file_get_contents($file_path);
-            if ($json_content !== false) {
-                $holiday_data = json_decode($json_content, true);
-                if (is_array($holiday_data)) {
-                    $holidays_by_year[$year] = $holiday_data;
-                }
+        $json_content = tintcal_read_file($file_path);
+        if ($json_content !== false) {
+            $holiday_data = json_decode($json_content, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($holiday_data)) {
+                $holidays_by_year[$year] = $holiday_data;
             }
         }
     }
@@ -894,14 +1013,13 @@ function tintcal_update_holiday_files($return_results = false) {
 
         // ファイルに保存
         $file_path = $locale_dir . "/{$year}.json";
-        // file_put_contentsは書き込んだバイト数を返す。失敗時はfalse
-        $write_result = file_put_contents($file_path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-        
+        $json_content = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        $write_result = tintcal_write_file($file_path, $json_content);
+
         $results[$year] = [
-            'success'     => $write_result !== false,
+            'success'     => $write_result,
             'path'        => $file_path,
-            'bytes'       => $write_result,
-            'error'       => $write_result === false ? esc_html__( 'ファイルの書き込みに失敗しました', 'tintcal' ) : ''
+            'error'       => $write_result ? '' : esc_html__( 'ファイルの書き込みに失敗しました', 'tintcal' )
         ];
     }
 
@@ -960,15 +1078,22 @@ add_action('admin_init', function() {
         $file_path = sanitize_text_field($_FILES['tintcal_import_file']['tmp_name']);
     }
 
-    if (empty($file_path)) {
+    if (empty($file_path) || !file_exists($file_path)) {
         // エラー処理（ファイルがない場合）
         wp_safe_redirect(admin_url('admin.php?page=tintcal-preference&import=error'));
         exit;
     }
 
+    // Note: Using file_get_contents for uploaded temp files is acceptable per WordPress standards
     $json = file_get_contents($file_path);
+    if ($json === false) {
+        wp_safe_redirect(admin_url('admin.php?page=tintcal-preference&import=error'));
+        exit;
+    }
+
     $data = json_decode($json, true);
     if (
+      json_last_error() !== JSON_ERROR_NONE ||
       !is_array($data) ||
       !isset($data['categories']) || !is_array($data['categories']) ||
       !isset($data['assignments']) || !is_array($data['assignments'])
@@ -1188,11 +1313,14 @@ add_action('admin_init', function() {
 
 
 /**
- * カレンダーの基本HTML構造を出力する
- * IDが渡された場合は、そのカレンダーの個別設定を反映する
+ * Render base HTML structure for calendar display
  *
- * @param int|null $post_id カレンダーの投稿ID
- * @return string カレンダーのHTML
+ * Generates the HTML skeleton for a calendar instance. If a post ID is provided,
+ * uses that calendar's individual settings; otherwise uses global settings.
+ *
+ * @since 2.2.2
+ * @param int|null $post_id Optional. Calendar post ID for individual settings
+ * @return string HTML markup for calendar container
  */
 function tintcal_render_calendar_base_html($post_id = null) {
     if ($post_id) {
@@ -1215,19 +1343,19 @@ function tintcal_render_calendar_base_html($post_id = null) {
 
       <div class="tintcal-calendar-controls" style="display: flex; justify-content: space-between; align-items: center;">
         <div>
-          <button type="button" class="prev-month"><?php echo esc_html__( '＜ 前の月', 'tintcal' ); ?></button>
+          <button type="button" class="prev-month" aria-label="<?php echo esc_attr__( '前の月へ', 'tintcal' ); ?>"><?php echo esc_html__( '＜ 前の月', 'tintcal' ); ?></button>
         </div>
         <div style="display: flex; align-items: center; gap: 15px;">
-          <span class="tintcal-month-year"></span>
+          <span class="tintcal-month-year" role="status" aria-live="polite"></span>
           <?php if ($show_today_button == 1): ?>
-            <button type="button" class="back-to-today" style="font-size: 11px; padding: 2px 6px; height: auto;"><?php echo esc_html__( '今月に戻る', 'tintcal' ); ?></button>
+            <button type="button" class="back-to-today" style="font-size: 11px; padding: 2px 6px; height: auto;" aria-label="<?php echo esc_attr__( '今月に戻る', 'tintcal' ); ?>"><?php echo esc_html__( '今月に戻る', 'tintcal' ); ?></button>
           <?php endif; ?>
         </div>
         <div>
-          <button type="button" class="next-month"><?php echo esc_html__( '次の月 ＞', 'tintcal' ); ?></button>
+          <button type="button" class="next-month" aria-label="<?php echo esc_attr__( '次の月へ', 'tintcal' ); ?>"><?php echo esc_html__( '次の月 ＞', 'tintcal' ); ?></button>
         </div>
       </div>
-      <table class="tintcal-calendar" border="1" cellspacing="0" cellpadding="5">
+      <table class="tintcal-calendar" role="grid" aria-label="<?php echo esc_attr__( 'カレンダー', 'tintcal' ); ?>" border="1" cellspacing="0" cellpadding="5">
         <thead><tr></tr></thead>
         <tbody></tbody>
       </table>

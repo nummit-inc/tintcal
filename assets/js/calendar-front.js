@@ -54,8 +54,6 @@ class TintCal {
      * @param {object} settings - PHPから渡される、このカレンダー専用の設定オブジェクト
      */
     constructor(selector, settings) {
-        console.log('TintCal instance created for:', selector);
-        console.log('Received settings:', settings);
         this.container = document.querySelector(selector);
         if (!this.container) {
             console.error(`TintCal Error: Container element "${selector}" not found.`);
@@ -203,13 +201,14 @@ class TintCal {
             this.calendarHead.appendChild(th);
         });
         
-        // --- 日付セル描画 ---
+        // --- 日付セル描画（DocumentFragmentでDOM操作を最適化） ---
         this.calendarBody.innerHTML = '';
         this.monthYearEl.textContent = `${currentYear}年${currentMonth + 1}月`;
         const firstDay = new Date(currentYear, currentMonth, 1).getDay();
         const startOffset = (firstDay - weekdayOffset + 7) % 7;
         const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
 
+        const fragment = document.createDocumentFragment();
         let date = 1;
         for (let i = 0; i < 6; i++) {
             const row = document.createElement('tr');
@@ -261,8 +260,9 @@ class TintCal {
                 }
                 row.appendChild(cell);
             }
-            this.calendarBody.appendChild(row);
+            fragment.appendChild(row);
         }
+        this.calendarBody.appendChild(fragment);
         this.renderLegend();
     }
 
