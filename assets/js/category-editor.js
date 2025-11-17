@@ -1,18 +1,25 @@
 // category-editor.js - 管理画面用 カテゴリ編集ロジック
 
-(function(I18N) {
-  // i18n defaults (override via wp_localize_script -> window.tintcalI18n)
-  Object.assign(I18N, (window.tintcalI18n || {
+(function(global) {
+  const DEFAULT_I18N = {
     tableHeaders: { name: 'カテゴリ名', color: '色コード', visible: '表示', actions: '操作' },
     edit: '編集',
-    save: '保存',
+    saveLabel: '保存',
     delete: '削除',
-    confirmDelete: (name) => `カテゴリ「${name || ''}」を削除してもよろしいですか？\nこの操作は取り消せません。`,
+    confirmDelete: 'カテゴリ「%s」を削除してもよろしいですか？\nこの操作は取り消せません。',
     emptyName: 'カテゴリ名は空にできません',
     duplicateName: 'すでに同じ名前のカテゴリが存在します。',
     saveFailed: '保存に失敗しました',
-    networkError: '通信エラーが発生しました'
-  }));
+    networkError: '通信エラーが発生しました',
+    singleCategoryLimitPlaceholder: '無料版は1カテゴリのみです',
+    singleCategoryLimitMessage: '無料版は1カテゴリのみです。既存カテゴリを編集するか、削除後に新規追加してください。',
+    singleCategoryPlaceholder: 'カテゴリ名（1件のみ）',
+    singleCategoryLimitAlert: '無料版は1カテゴリのみです。既存カテゴリを削除してから新規追加するか、編集ボタンで既存カテゴリを変更してください。',
+    enterCategoryName: 'カテゴリ名を入力してください'
+  };
+
+  const merged = Object.assign({}, DEFAULT_I18N, (global.tintcalI18n || {}));
+  const I18N = Object.assign(global.I18N || (global.I18N = {}), merged);
 
   // =============================
   // 初期化・イベントバインド
@@ -63,7 +70,7 @@
       nameInput.disabled = true;
       colorInput.disabled = true;
       addBtn.disabled = true;
-      nameInput.placeholder = "無料版は1カテゴリのみです";
+      nameInput.placeholder = I18N.singleCategoryLimitPlaceholder || DEFAULT_I18N.singleCategoryLimitPlaceholder;
       nameInput.value = "";
 
       // メッセージ表示（既存のメッセージがなければ追加）
@@ -74,7 +81,7 @@
         message.style.color = "#666";
         message.style.fontSize = "13px";
         message.style.marginTop = "8px";
-        message.textContent = "無料版は1カテゴリのみです。既存カテゴリを編集するか、削除後に新規追加してください。";
+        message.textContent = I18N.singleCategoryLimitMessage || DEFAULT_I18N.singleCategoryLimitMessage;
         addBtn.parentElement.appendChild(message);
       }
     } else {
@@ -82,7 +89,7 @@
       nameInput.disabled = false;
       colorInput.disabled = false;
       addBtn.disabled = false;
-      nameInput.placeholder = "カテゴリ名（1件のみ）";
+      nameInput.placeholder = I18N.singleCategoryPlaceholder || DEFAULT_I18N.singleCategoryPlaceholder;
 
       // メッセージを削除
       const message = document.querySelector("#tintcal-category-limit-message");
@@ -128,7 +135,7 @@
           <\/td>
           <td>
             <button data-slug="${cat.slug}" class="edit-category">${I18N.edit}<\/button>
-            <button data-slug="${cat.slug}" class="save-category" style="display:none;">${I18N.save}<\/button>
+            <button data-slug="${cat.slug}" class="save-category" style="display:none;">${I18N.saveLabel || I18N.save || DEFAULT_I18N.saveLabel}<\/button>
             <button data-slug="${cat.slug}" class="delete-category">${I18N.delete}<\/button>
           <\/td>
         `;
@@ -153,7 +160,8 @@
         const slug = this.getAttribute("data-slug");
         const categories = loadCategories();
         const cat = categories.find(c => c.slug === slug);
-        const confirmed = confirm(I18N.confirmDelete(cat ? cat.name : ''));
+        const template = I18N.confirmDelete || DEFAULT_I18N.confirmDelete;
+        const confirmed = confirm(template.replace('%s', cat ? cat.name : ''));
         if (!confirmed) return;
         const updatedCategories = categories.filter(c => c.slug !== slug);
         if (await saveCategories(updatedCategories)) {
@@ -251,13 +259,13 @@
 
         // 無料版：既に1件ある場合は追加不可
         if (categoriesArr.length >= 1) {
-          alert("無料版は1カテゴリのみです。既存カテゴリを削除してから新規追加するか、編集ボタンで既存カテゴリを変更してください。");
+          alert(I18N.singleCategoryLimitAlert || DEFAULT_I18N.singleCategoryLimitAlert);
           return;
         }
 
         const name = nameInput.value.trim();
         const color = colorInput.value;
-        if (!name) { alert("カテゴリ名を入力してください"); return; }
+        if (!name) { alert(I18N.enterCategoryName || DEFAULT_I18N.enterCategoryName); return; }
 
         // 新規カテゴリを作成
         const newCat = {
@@ -315,7 +323,7 @@
 
       if (res.success && res.data && res.data.notice) {
         // サーバー側で複数をトリムした際の注意を中立表示（Upsellではない）
-        alert(res.data.notice || I18N.saveFailed);
+        alert(res.data.notice || I18N.failedToSave || DEFAULT_I18N.saveFailed);
       }
 
       // ▼▼▼ レスポンスのハンドリングを修正 ▼▼▼
@@ -335,7 +343,7 @@
         }
       } else {
         // その他の通常のエラー
-        alert(res.data?.message || I18N.saveFailed);
+        alert(res.data?.message || I18N.failedToSave || DEFAULT_I18N.saveFailed);
         return false;
       }
 
@@ -371,10 +379,10 @@
       }
       return true;
     } catch (err) {
-      console.error("データ取得に失敗しました:", err);
+      console.error('Failed to fetch data:', err);
       return false;
     }
   }
 
   window.fetchAllDataFromServer = fetchAllDataFromServer;
-})(window.I18N = window.I18N || {});
+})(window);

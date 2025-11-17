@@ -1,11 +1,12 @@
 // admin-ui-tintcal.js - 管理画面のUI（タブ・デモカレンダーなど）を操作する
 
-(function(I18N) {
+(function() {
   document.addEventListener('DOMContentLoaded', () => {
     // i18n defaults (can be overridden by wp_localize_script -> window.tintcalI18n)
-    Object.assign(I18N, (window.tintcalI18n || {
+    const DEFAULT_I18N = {
       weekdaysSunStart: ['日','月','火','水','木','金','土']
-    }));
+    };
+    const I18N = Object.assign({}, DEFAULT_I18N, (window.tintcalI18n || {}));
 
     // =============================
     // タブ切り替え処理
@@ -212,4 +213,4 @@
       updateDemoAppearance();
     }
   });
-})(window.I18N = window.I18N || {});
+})();

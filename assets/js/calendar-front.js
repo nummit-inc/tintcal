@@ -1,12 +1,15 @@
 // assets/js/calendar-front.js
 
 // i18n defaults (override via wp_localize_script -> window.tintcalI18n)
-const I18N = (window.tintcalI18n || {
+const DEFAULT_I18N = {
   unexpectedResponse: '予期しない応答',
   failedToSaveHolidays: '祝日データの保存に失敗しました。',
   ajaxError: 'Ajax通信エラー',
-  reloadPage: '祝日データの取得中に問題が発生しました。再読み込みしてください。'
-});
+  reloadPage: '祝日データの取得中に問題が発生しました。再読み込みしてください。',
+  weekdaysSunStart: ['日','月','火','水','木','金','土'],
+  monthYearFormat: '%1$s年%2$s月'
+};
+const I18N = Object.assign({}, DEFAULT_I18N, (window.tintcalI18n || {}));
 
 // 祝日データは TintCal クラスのプロパティとして管理するため、グローバルな宣言は不要
 
@@ -185,7 +188,7 @@ class TintCal {
         
         // --- ヘッダー描画 ---
         const weekdayOffset = (startDay === 'monday') ? 1 : 0;
-        const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+        const weekdays = (I18N.weekdaysSunStart || DEFAULT_I18N.weekdaysSunStart).slice();
         const reorderedWeekdays = [...weekdays.slice(weekdayOffset), ...weekdays.slice(0, weekdayOffset)];
         
         this.calendarHead.innerHTML = '';
@@ -203,7 +206,8 @@ class TintCal {
         
         // --- 日付セル描画（DocumentFragmentでDOM操作を最適化） ---
         this.calendarBody.innerHTML = '';
-        this.monthYearEl.textContent = `${currentYear}年${currentMonth + 1}月`;
+        const monthFormat = I18N.monthYearFormat || DEFAULT_I18N.monthYearFormat;
+        this.monthYearEl.textContent = monthFormat.replace('%1$s', currentYear).replace('%2$s', currentMonth + 1);
         const firstDay = new Date(currentYear, currentMonth, 1).getDay();
         const startOffset = (firstDay - weekdayOffset + 7) % 7;
         const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
