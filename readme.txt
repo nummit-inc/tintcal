@@ -4,7 +4,7 @@ Tags: calendar, events, schedule, holiday, business hours
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.2.3
+Stable tag: 2.2.4
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,13 @@ Clear browser, server, and plugin caches, and purge your CDN if you use one. Con
 4.  The base settings screen.
 
 == Changelog ==
+
+= 2.2.4 =
+*   Enhancement: Added full internationalization support via `load_plugin_textdomain()` and localized JavaScript strings.
+*   Enhancement: Provided English and Japanese translation files (`.po/.mo`) plus updated `.pot` template.
+*   Enhancement: Localized Japanese public holiday names based on the active site language.
+*   Fix: Front-end and admin calendars now display translated weekday headers/month labels.
+*   Documentation: Updated stable tag and changelog for version 2.2.4.
 
 = 2.2.3 =
 *   Fix: Category override bug in free version - form now properly disables when 1 category limit is reached

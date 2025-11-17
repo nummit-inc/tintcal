@@ -27,8 +27,8 @@
             <tr>
               <th scope="row"><?php echo esc_html__( '曜日ヘッダーの背景色', 'tintcal' ); ?></th>
               <td>
-                <?php $color = esc_attr(get_option('tintcal_header_color', '#eeeeee')); ?>
-                <input type="color" name="header_color" id="tintcal-header-color-input" class="tintcal-setting-input" value="<?php echo esc_attr($color) ?>">
+                <?php $tintcal_header_color_value = esc_attr(get_option('tintcal_header_color', '#eeeeee')); ?>
+                <input type="color" name="header_color" id="tintcal-header-color-input" class="tintcal-setting-input" value="<?php echo esc_attr($tintcal_header_color_value) ?>">
               </td>
             </tr>
             <tr>
@@ -38,8 +38,8 @@
                   <input type="checkbox" name="enable_holidays" value="1" class="tintcal-setting-input" <?php echo checked(get_option('tintcal_enable_holidays', 1), 1, false); ?>> <?php echo esc_html__( '祝日を表示する', 'tintcal' ); ?>
                 </label>
                 
-                <?php $color = esc_attr(get_option('tintcal_holiday_color', '#ffdddd')); ?>
-                <input type="color" name="holiday_color" id="tintcal-holiday-color-input" class="tintcal-setting-input" value="<?php echo esc_attr($color) ?>" style="margin-left: 10px;">
+                <?php $tintcal_holiday_color_value = esc_attr(get_option('tintcal_holiday_color', '#ffdddd')); ?>
+                <input type="color" name="holiday_color" id="tintcal-holiday-color-input" class="tintcal-setting-input" value="<?php echo esc_attr($tintcal_holiday_color_value) ?>" style="margin-left: 10px;">
               </td>
             </tr>
             <tr>
@@ -52,13 +52,13 @@
                 <hr style="margin: 10px 0;">
                 
                 <label><input type="checkbox" name="show_sunday_color" value="1" class="tintcal-setting-input" <?php echo checked(get_option('tintcal_show_sunday_color', 1), 1, false); ?>> <?php echo esc_html__( '日付セルの日曜を色付け', 'tintcal' ); ?></label>
-                <?php $color = esc_attr(get_option('tintcal_sunday_color', '#ffecec')); ?>
-                <input type="color" name="sunday_color" id="tintcal-sunday-color-input" class="tintcal-setting-input" value="<?php echo esc_attr($color) ?>">
+                <?php $tintcal_sunday_color_value = esc_attr(get_option('tintcal_sunday_color', '#ffecec')); ?>
+                <input type="color" name="sunday_color" id="tintcal-sunday-color-input" class="tintcal-setting-input" value="<?php echo esc_attr($tintcal_sunday_color_value) ?>">
 
                 <br><br>
                 <label><input type="checkbox" name="show_saturday_color" value="1" class="tintcal-setting-input" <?php echo checked(get_option('tintcal_show_saturday_color', 1), 1, false); ?>> <?php echo esc_html__( '日付セルの土曜を色付け', 'tintcal' ); ?></label>
-                <?php $color = esc_attr(get_option('tintcal_saturday_color', '#ecf5ff')); ?>
-                <input type="color" name="saturday_color" id="tintcal-saturday-color-input" class="tintcal-setting-input" value="<?php echo esc_attr($color) ?>">
+                <?php $tintcal_saturday_color_value = esc_attr(get_option('tintcal_saturday_color', '#ecf5ff')); ?>
+                <input type="color" name="saturday_color" id="tintcal-saturday-color-input" class="tintcal-setting-input" value="<?php echo esc_attr($tintcal_saturday_color_value) ?>">
               </td>
             </tr>
             <tr>
@@ -153,13 +153,13 @@ if (current_user_can('edit_posts')) :
     <p><?php echo esc_html__( '各カレンダーに固有の設定（表示するカテゴリの選択など）を行うには、以下の一覧から編集画面へ移動してください。', 'tintcal' ); ?></p>
     <ul>
         <?php
-        foreach ($tintcal_calendars as $jc) {
+        foreach ($tintcal_calendars as $tintcal_calendar_item) {
             // 編集画面への正しいURLを生成
-            $edit_url = admin_url('post.php?post=' . $jc->ID . '&action=edit');
+            $tintcal_edit_url = admin_url('post.php?post=' . $tintcal_calendar_item->ID . '&action=edit');
             ?>
             <li>
-                <a href="<?php echo esc_url($edit_url); ?>">
-                    <?php echo esc_html($jc->post_title); ?> (ID: <?php echo esc_html($jc->ID); ?>)
+                <a href="<?php echo esc_url($tintcal_edit_url); ?>">
+                    <?php echo esc_html($tintcal_calendar_item->post_title); ?> (ID: <?php echo esc_html($tintcal_calendar_item->ID); ?>)
                 </a>
             </li>
             <?php

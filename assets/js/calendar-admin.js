@@ -16,39 +16,40 @@ const HOLIDAY_REFRESH_MONTHS = 6;
 
 /** i18n defaults (override via wp_localize_script -> window.tintcalI18n) */
 // グローバルなI18Nオブジェクトを安全に初期化します
-const I18N = (window.I18N = window.I18N || {});
-Object.assign(I18N, (window.tintcalI18n || {
-  // generic
+const GLOBAL_I18N = (window.I18N = window.I18N || {});
+const DEFAULT_I18N = {
   loading: "取得中...",
   reloadHoliday: "祝日データを再取得",
-  // sidebar/help
   pleaseCreateCategory: "まずは「カテゴリ追加・編集」でカテゴリを登録してください。",
-  // import messages
   importSuccess: "カテゴリと日付データをインポートしました。",
   importError: "インポートに失敗しました。JSONの形式を確認してください。",
   pleaseSelectFile: "ファイルを選択してください。",
-  // save/assign modal
   saved: "保存しました",
   failedToSave: "保存に失敗しました。",
-  // reset confirmations / results
   resetDatesConfirm: "すべてのカレンダー日付割当を初期化します。よろしいですか？",
   resetDatesOk: "日付の割当を初期化しました",
   resetFailed: "初期化に失敗しました。",
   resetError: "初期化中にエラーが発生しました。",
   resetAllConfirm: "この操作は元に戻せません。本当に全データを初期化しますか？",
   resetAllOk: "全データを初期化しました",
-  // holiday reload messages
   holidayUpdatedHeader: "<strong>祝日データの更新が完了しました。</strong>",
-  yearUpdated: (year) => `✅ ${year}年: 更新しました。`,
-  yearFailed: (year, err) => `❌ ${year}年: 失敗しました (${err})`,
+  yearUpdated: "✅ %1$s年: 更新しました。",
+  yearFailed: "❌ %1$s年: 失敗しました (%2$s)",
   fetchHolidayFailed: "祝日データの再取得に失敗しました。",
   fetchHolidayError: "祝日再取得中にエラーが発生しました。",
-  // saveHolidaysToLocal()
   unexpectedResponse: "予期しない応答",
   failedToSaveHolidays: "祝日データの保存に失敗しました。",
   ajaxError: "Ajax通信エラー",
-  reloadPage: "祝日データの取得中に問題が発生しました。再読み込みしてください。"
-}));
+  reloadPage: "祝日データの取得中に問題が発生しました。再読み込みしてください。",
+  weekdaysSunStart: ['日','月','火','水','木','金','土'],
+  monthYearFormat: '%1$s年%2$s月',
+  saveLabel: '保存',
+  saveInProgress: '保存中...',
+  cancel: 'キャンセル'
+};
+const MERGED_I18N = Object.assign({}, DEFAULT_I18N, (window.tintcalI18n || {}));
+Object.assign(GLOBAL_I18N, MERGED_I18N);
+const I18N = GLOBAL_I18N;
 
 // =============================
 // ユーティリティ関数
@@ -196,7 +197,7 @@ async function drawCalendar() { // 1. async を追加
           titleText = yearHolidays[key];
         }
   const weekdayOffset = startDay === "monday" ? 1 : 0;
-  const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+  const weekdays = (I18N.weekdaysSunStart || DEFAULT_I18N.weekdaysSunStart).slice();
   const reorderedWeekdays = weekdays.slice(weekdayOffset).concat(weekdays.slice(0, weekdayOffset));
   window.tintcalPluginData.categories = Array.isArray(window.tintcalPluginData.categories)
   ? window.tintcalPluginData.categories
@@ -242,7 +243,8 @@ async function drawCalendar() { // 1. async を追加
   const startOffset = (firstDay - weekdayOffset + 7) % 7;
   const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-monthYearEl.textContent = `${currentYear}年${currentMonth + 1}月`;
+const monthFormat = I18N.monthYearFormat || DEFAULT_I18N.monthYearFormat;
+monthYearEl.textContent = monthFormat.replace('%1$s', currentYear).replace('%2$s', currentMonth + 1);
 
   let date = 1;
   for (let i = 0; i < 6; i++) {
@@ -391,14 +393,14 @@ monthYearEl.textContent = `${currentYear}年${currentMonth + 1}月`;
             // 保存ボタンの作成（青いプライマリボタン）
             const saveBtn = document.createElement("button");
             saveBtn.className = "button button-primary";
-            saveBtn.textContent = "保存";
+            saveBtn.textContent = I18N.saveLabel || DEFAULT_I18N.saveLabel;
             buttonWrapper.appendChild(saveBtn);
 
             // キャンセルボタンの作成（白いセカンダリボタン）
             const cancelBtn = document.createElement("button");
             cancelBtn.type = "button";
             cancelBtn.className = "button button-secondary";
-            cancelBtn.textContent = "キャンセル";
+            cancelBtn.textContent = I18N.cancel || DEFAULT_I18N.cancel;
             buttonWrapper.appendChild(cancelBtn);
 
             // 作成したボタンの箱をポップアップに追加
@@ -444,7 +446,7 @@ monthYearEl.textContent = `${currentYear}年${currentMonth + 1}月`;
             // 保存ボタンの処理
             saveBtn.addEventListener("click", async function() {
               saveBtn.disabled = true;
-              saveBtn.textContent = '保存中...';
+              saveBtn.textContent = I18N.saveInProgress || DEFAULT_I18N.saveInProgress;
 
               try {
                 const selected = categoryList.querySelector("input[type=radio]:checked");
@@ -484,13 +486,13 @@ monthYearEl.textContent = `${currentYear}年${currentMonth + 1}月`;
                 } else {
                     alert(result.data?.message || I18N.failedToSave);
                     saveBtn.disabled = false;
-                    saveBtn.textContent = '保存';
+                    saveBtn.textContent = I18N.saveLabel || DEFAULT_I18N.saveLabel;
                 }
               } catch (error) {
-                  console.error("保存失敗（通信エラー）：", error);
+                  console.error(I18N.failedToSave, error);
                   alert(I18N.failedToSave);
                   saveBtn.disabled = false;
-                  saveBtn.textContent = '保存';
+                  saveBtn.textContent = I18N.saveLabel || DEFAULT_I18N.saveLabel;
               }
             });
           });
@@ -631,7 +633,7 @@ window.addEventListener("DOMContentLoaded", () => {
           const appendMode = document.querySelector('input[name="import_append_mode"]').checked;
           handleImportJSON(content, appendMode); // true: 追加モード, false: 上書きモード
         } else {
-          console.error("❌ handleImportJSON が未定義です");
+          console.error("❌ handleImportJSON is undefined");
         }
       };
       reader.readAsText(fileInput.files[0]);
@@ -673,7 +675,7 @@ document.addEventListener("DOMContentLoaded", function () {
           alert(I18N.resetFailed);
         }
       } catch (err) {
-        console.error("❌ 初期化エラー:", err);
+        console.error("❌ Initialization error:", err);
         alert(I18N.resetError);
       }
     });
@@ -715,7 +717,7 @@ document.addEventListener("DOMContentLoaded", function () {
           alert(I18N.resetFailed);
         }
       } catch (err) {
-        console.error("❌ 全データ初期化エラー:", err);
+        console.error("❌ Full reset error:", err);
         alert(I18N.resetError);
       }
     });
@@ -749,9 +751,12 @@ document.addEventListener("DOMContentLoaded", function () {
           // 年ごとの結果をチェックしてメッセージを作成
           for (const year in results) {
             if (results[year].success) {
-              messages.push(I18N.yearUpdated(year));
+              const successTemplate = I18N.yearUpdated || DEFAULT_I18N.yearUpdated;
+              messages.push(successTemplate.replace('%1$s', year));
             } else {
-              messages.push(I18N.yearFailed(year, results[year].error));
+              const failTemplate = I18N.yearFailed || DEFAULT_I18N.yearFailed;
+              const errorText = results[year].error || '';
+              messages.push(failTemplate.replace('%1$s', year).replace('%2$s', errorText));
             }
           }
           
@@ -766,7 +771,7 @@ document.addEventListener("DOMContentLoaded", function () {
           alert(I18N.fetchHolidayFailed);
         }
       } catch (err) {
-        console.error("❌ 祝日再取得エラー:", err);
+        console.error("❌ Holiday reload error:", err);
         alert(I18N.fetchHolidayError);
       } finally {
         // 処理が終わったらボタンを元に戻す

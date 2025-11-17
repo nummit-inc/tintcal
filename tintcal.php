@@ -3,8 +3,8 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 /*
 Plugin Name:      TintCal
 Plugin URI:       https://tintcal.com
-Description:      「定休日」や「イベント日」といった予定を自由に設定し、日付をカラフルに色分け。日本の祝日にも対応した、見た目がわかりやすいオリジナルカレンダーを作成できます。
-Version:          2.2.3
+Description:      Create simple event calendars with color-coded schedules and built-in Japanese holiday support.
+Version:          2.2.4
 Requires at least: 5.8
 Requires PHP:     7.4
 Author:           QuantaLumina
@@ -16,7 +16,23 @@ Domain Path:      /languages
 */
 
 
-define('TINTCAL_VERSION', '2.2.3');
+
+/**
+ * Localize plugin description for admin list.
+ *
+ * @param array $plugins All plugin data.
+ * @return array
+ */
+function tintcal_localize_plugin_description($plugins) {
+    $plugin_file = plugin_basename(__FILE__);
+    if (isset($plugins[$plugin_file])) {
+        $plugins[$plugin_file]['Description'] = esc_html__( '「定休日」や「イベント日」といった予定を自由に設定し、日付をカラフルに色分け。日本の祝日にも対応した、見た目がわかりやすいオリジナルカレンダーを作成できます。', 'tintcal' );
+    }
+    return $plugins;
+}
+add_filter('all_plugins', 'tintcal_localize_plugin_description');
+
+define('TINTCAL_VERSION', '2.2.4');
 define('TINTCAL_FREE_MAX_CATEGORIES', 1); // Free version supports only 1 category
 
 
@@ -29,6 +45,165 @@ require_once $tintcal_includes_path . 'save-meta-tintcal.php';
 require_once $tintcal_includes_path . 'list-view-tintcal.php';
 require_once $tintcal_includes_path . 'post-type-tintcal.php';
 require_once $tintcal_includes_path . 'shortcode-frontend-tintcal.php';
+
+/**
+ * Return localized weekday labels (Sunday start).
+ *
+ * @return array
+ */
+function tintcal_get_weekday_labels() {
+    return [
+        esc_html_x('日', 'short weekday Sunday', 'tintcal'),
+        esc_html_x('月', 'short weekday Monday', 'tintcal'),
+        esc_html_x('火', 'short weekday Tuesday', 'tintcal'),
+        esc_html_x('水', 'short weekday Wednesday', 'tintcal'),
+        esc_html_x('木', 'short weekday Thursday', 'tintcal'),
+        esc_html_x('金', 'short weekday Friday', 'tintcal'),
+        esc_html_x('土', 'short weekday Saturday', 'tintcal'),
+    ];
+}
+
+/**
+ * Translate holiday names using available locale files.
+ *
+ * @param array $holidays Associative array of date => label.
+ * @return array
+ */
+function tintcal_translate_holiday_names($holidays) {
+    if (!is_array($holidays)) {
+        return [];
+    }
+
+    static $translation_map = null;
+
+    if (null === $translation_map) {
+        $translation_map = [
+            '元日'       => __( '元日', 'tintcal' ),
+            '成人の日'   => __( '成人の日', 'tintcal' ),
+            '建国記念の日' => __( '建国記念の日', 'tintcal' ),
+            '天皇誕生日' => __( '天皇誕生日', 'tintcal' ),
+            '春分の日'   => __( '春分の日', 'tintcal' ),
+            '昭和の日'   => __( '昭和の日', 'tintcal' ),
+            '憲法記念日' => __( '憲法記念日', 'tintcal' ),
+            'みどりの日' => __( 'みどりの日', 'tintcal' ),
+            'こどもの日' => __( 'こどもの日', 'tintcal' ),
+            '海の日'     => __( '海の日', 'tintcal' ),
+            '山の日'     => __( '山の日', 'tintcal' ),
+            '敬老の日'   => __( '敬老の日', 'tintcal' ),
+            '秋分の日'   => __( '秋分の日', 'tintcal' ),
+            'スポーツの日' => __( 'スポーツの日', 'tintcal' ),
+            '体育の日'   => __( '体育の日', 'tintcal' ),
+            '文化の日'   => __( '文化の日', 'tintcal' ),
+            '勤労感謝の日' => __( '勤労感謝の日', 'tintcal' ),
+            '振替休日'   => __( '振替休日', 'tintcal' ),
+            '国民の休日' => __( '国民の休日', 'tintcal' ),
+        ];
+    }
+
+    foreach ($holidays as $date => $name) {
+        $translated = null;
+
+        if (isset($translation_map[$name])) {
+            $translated = $translation_map[$name];
+        } elseif (str_ends_with($name, ' 振替休日')) {
+            $base_name = trim(str_replace(' 振替休日', '', $name));
+            if (isset($translation_map[$base_name])) {
+                /* translators: %s: Holiday name. */
+                $translated = sprintf(__( '%s (Substitute Holiday)', 'tintcal' ), $translation_map[$base_name]);
+            } else {
+                $translated = __( 'Substitute Holiday', 'tintcal' );
+            }
+        }
+
+        if (null === $translated) {
+            $translated = sanitize_text_field($name);
+        }
+
+        $holidays[$date] = $translated;
+    }
+
+    return $holidays;
+}
+
+/**
+ * Translate holidays for all loaded years.
+ *
+ * @param array $holidays_by_year Array of year => holiday array.
+ * @return array
+ */
+function tintcal_prepare_holiday_dataset($holidays_by_year) {
+    foreach ($holidays_by_year as $year => $holidays) {
+        $holidays_by_year[$year] = tintcal_translate_holiday_names($holidays);
+    }
+    return $holidays_by_year;
+}
+
+/**
+ * Build i18n strings for JavaScript contexts.
+ *
+ * @param string $context Either 'front' or 'admin'.
+ * @return array
+ */
+function tintcal_get_js_i18n_strings($context = 'front') {
+    $shared = [
+        'unexpectedResponse'  => esc_html__( '予期しない応答', 'tintcal' ),
+        'failedToSaveHolidays'=> esc_html__( '祝日データの保存に失敗しました。', 'tintcal' ),
+        'ajaxError'           => esc_html__( 'Ajax通信エラー', 'tintcal' ),
+        'reloadPage'          => esc_html__( '祝日データの取得中に問題が発生しました。再読み込みしてください。', 'tintcal' ),
+        'weekdaysSunStart'    => tintcal_get_weekday_labels(),
+        /* translators: 1: Year (e.g., 2025). 2: Month (1-12). */
+        'monthYearFormat'     => esc_html_x('%1$s年%2$s月', 'month and year heading', 'tintcal'),
+    ];
+
+    if ('admin' === $context) {
+        $shared = array_merge($shared, [
+            'loading'                     => esc_html__( '取得中...', 'tintcal' ),
+            'reloadHoliday'               => esc_html__( '祝日データを再取得', 'tintcal' ),
+            'pleaseCreateCategory'        => esc_html__( 'まずは「カテゴリ追加・編集」でカテゴリを登録してください。', 'tintcal' ),
+            'importSuccess'               => esc_html__( 'カテゴリと日付データをインポートしました。', 'tintcal' ),
+            'importError'                 => esc_html__( 'インポートに失敗しました。JSONの形式を確認してください。', 'tintcal' ),
+            'pleaseSelectFile'            => esc_html__( 'ファイルを選択してください。', 'tintcal' ),
+            'saved'                       => esc_html__( '保存しました', 'tintcal' ),
+            'failedToSave'                => esc_html__( '保存に失敗しました。', 'tintcal' ),
+            'resetDatesConfirm'           => esc_html__( 'すべてのカレンダー日付割当を初期化します。よろしいですか？', 'tintcal' ),
+            'resetDatesOk'                => esc_html__( '日付の割当を初期化しました', 'tintcal' ),
+            'resetFailed'                 => esc_html__( '初期化に失敗しました。', 'tintcal' ),
+            'resetError'                  => esc_html__( '初期化中にエラーが発生しました。', 'tintcal' ),
+            'resetAllConfirm'             => esc_html__( 'この操作は元に戻せません。本当に全データを初期化しますか？', 'tintcal' ),
+            'resetAllOk'                  => esc_html__( '全データを初期化しました', 'tintcal' ),
+            'holidayUpdatedHeader'        => wp_kses_post( sprintf('<strong>%s</strong>', esc_html__( '祝日データの更新が完了しました。', 'tintcal' )) ),
+            /* translators: %s: Year (e.g., 2025). */
+            'yearUpdated'                 => esc_html__( '✅ %1$s年: 更新しました。', 'tintcal' ),
+            /* translators: 1: Year (e.g., 2025). 2: Error message. */
+            'yearFailed'                  => esc_html__( '❌ %1$s年: 失敗しました (%2$s)', 'tintcal' ),
+            'fetchHolidayFailed'          => esc_html__( '祝日データの再取得に失敗しました。', 'tintcal' ),
+            'fetchHolidayError'           => esc_html__( '祝日再取得中にエラーが発生しました。', 'tintcal' ),
+            'saveLabel'                   => esc_html__( '保存', 'tintcal' ),
+            'saveInProgress'              => esc_html__( '保存中...', 'tintcal' ),
+            'cancel'                      => esc_html__( 'キャンセル', 'tintcal' ),
+            'edit'                        => esc_html__( '編集', 'tintcal' ),
+            'delete'                      => esc_html__( '削除', 'tintcal' ),
+            'tableHeaders'                => [
+                'name'    => esc_html__( 'カテゴリ名', 'tintcal' ),
+                'color'   => esc_html__( '色コード', 'tintcal' ),
+                'visible' => esc_html__( '表示', 'tintcal' ),
+                'actions' => esc_html__( '操作', 'tintcal' ),
+            ],
+            /* translators: %s: Category name. */
+            'confirmDelete'               => esc_html__( 'カテゴリ「%s」を削除してもよろしいですか？\nこの操作は取り消せません。', 'tintcal' ),
+            'emptyName'                   => esc_html__( 'カテゴリ名は空にできません', 'tintcal' ),
+            'duplicateName'               => esc_html__( 'すでに同じ名前のカテゴリが存在します。', 'tintcal' ),
+            'singleCategoryLimitPlaceholder' => esc_html__( '無料版は1カテゴリのみです', 'tintcal' ),
+            'singleCategoryLimitMessage'  => esc_html__( '無料版は1カテゴリのみです。既存カテゴリを編集するか、削除後に新規追加してください。', 'tintcal' ),
+            'singleCategoryPlaceholder'   => esc_html__( 'カテゴリ名（1件のみ）', 'tintcal' ),
+            'singleCategoryLimitAlert'    => esc_html__( '無料版は1カテゴリのみです。既存カテゴリを削除してから新規追加するか、編集ボタンで既存カテゴリを変更してください。', 'tintcal' ),
+            'enterCategoryName'           => esc_html__( 'カテゴリ名を入力してください', 'tintcal' ),
+            'networkError'                => esc_html__( '通信エラーが発生しました', 'tintcal' ),
+        ]);
+    }
+
+    return $shared;
+}
 
 // =============================
 // WP_Filesystem Helper Functions
@@ -399,6 +574,7 @@ function tintcal_build_js_data_for_admin($post_id = null) {
         set_transient($cache_key, $holidays_by_year, DAY_IN_SECONDS);
     }
 
+    $holidays_by_year = tintcal_prepare_holiday_dataset($holidays_by_year);
     $js_data['holidays'] = $holidays_by_year;
     $js_data['locale'] = $locale;
     $js_data['holidayJsonUrl'] = $upload_dir['baseurl'] . '/tintcal-holidays';
@@ -442,6 +618,7 @@ add_action('admin_enqueue_scripts', function ($hook) {
     if ($is_tintcal_admin_page) { // 「カテゴリ・日付入力」または「プラグイン設定」ページの場合
         wp_enqueue_script('tintcal-admin', plugin_dir_url(__FILE__) . 'assets/js/calendar-admin.js', ['jquery'], TINTCAL_VERSION, true);
         wp_localize_script('tintcal-admin', 'tintcalPluginData', $js_data); // tintcal-admin に localize
+        wp_localize_script('tintcal-admin', 'tintcalI18n', tintcal_get_js_i18n_strings('admin'));
         
         wp_enqueue_script('tintcal-editor', plugin_dir_url(__FILE__) . 'assets/js/category-editor.js', ['tintcal-admin'], TINTCAL_VERSION, true);
         wp_enqueue_script('tintcal-admin-ui', plugin_dir_url(__FILE__) . 'assets/js/admin-ui-tintcal.js', [], TINTCAL_VERSION, true);
@@ -449,6 +626,7 @@ add_action('admin_enqueue_scripts', function ($hook) {
     } else if ($is_tintcal_post_edit_page) { // 「カレンダー」投稿の編集・新規作成ページの場合
         wp_enqueue_script('tintcal-front', plugin_dir_url(__FILE__) . 'assets/js/calendar-front.js', ['jquery'], TINTCAL_VERSION, true);
         wp_localize_script('tintcal-front', 'tintcalPluginData', $js_data); // tintcal-front に localize
+        wp_localize_script('tintcal-front', 'tintcalI18n', tintcal_get_js_i18n_strings());
         
         wp_add_inline_script('tintcal-front', "document.addEventListener('DOMContentLoaded', () => { new TintCal('#tintcal-preview-admin', tintcalPluginData); });", 'after');
     }
@@ -521,6 +699,7 @@ function tintcal_build_js_data_for_frontend($post_id) {
             set_transient($cache_key, $holidays_by_year, DAY_IN_SECONDS);
         }
 
+        $holidays_by_year = tintcal_prepare_holiday_dataset($holidays_by_year);
         $js_data['holidays'] = $holidays_by_year;
         $js_data['locale'] = $locale;
         $js_data['holidayJsonUrl'] = $upload_dir['baseurl'] . '/tintcal-holidays';
@@ -610,6 +789,7 @@ function tintcal_build_js_data_for_frontend($post_id) {
         set_transient($cache_key, $holidays_by_year, DAY_IN_SECONDS);
     }
 
+    $holidays_by_year = tintcal_prepare_holiday_dataset($holidays_by_year);
     $js_data['holidays'] = $holidays_by_year;
     $js_data['locale'] = $locale;
     $js_data['holidayJsonUrl'] = $upload_dir['baseurl'] . '/tintcal-holidays';
@@ -642,6 +822,7 @@ add_action('wp_enqueue_scripts', function () {
         $post_id = get_the_ID();
         $js_data = tintcal_build_js_data_for_frontend($post_id);
         wp_localize_script('tintcal-front', 'tintcalPluginData', $js_data);
+        wp_localize_script('tintcal-front', 'tintcalI18n', tintcal_get_js_i18n_strings());
 
         $json_data = json_encode($js_data, JSON_UNESCAPED_UNICODE);
         $unique_id = 'tintcal-instance-' . $post_id;
@@ -657,6 +838,7 @@ add_action('wp_enqueue_scripts', function () {
         // 例: グローバルな設定だけ渡す場合
         $js_data = tintcal_build_js_data_for_frontend(null);
         wp_localize_script('tintcal-front', 'tintcalPluginData', $js_data);
+        wp_localize_script('tintcal-front', 'tintcalI18n', tintcal_get_js_i18n_strings());
         wp_enqueue_script('tintcal-front');
         wp_enqueue_style('tintcal-style-front');
     }
@@ -947,6 +1129,8 @@ add_action('wp_ajax_reload_tintcal_holidays', function () {
             }
         }
     }
+
+    $holidays_by_year = tintcal_prepare_holiday_dataset($holidays_by_year);
 
     // 成功応答に、最新の祝日データと処理結果の両方を含めて返す
     wp_send_json_success([

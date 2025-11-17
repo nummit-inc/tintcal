@@ -26,7 +26,7 @@ add_action('admin_menu', function () {
    * ダッシュボードメニューをクリックしたらカスタム投稿一覧へ飛ばす
    */
   function tintcal_dashboard_redirect() {
-      wp_redirect( admin_url('edit.php?post_type=tintcal') );
+      wp_safe_redirect( admin_url('edit.php?post_type=tintcal') );
       exit;
   }
 
