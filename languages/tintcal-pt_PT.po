@@ -282,8 +282,9 @@ msgid ""
 "このまま保存すると、表示されていない他のカテゴリが全て削除されますが、よろし"
 "いですか？"
 msgstr ""
-"Existem actualmente várias categorias guardadas na base de dados.\\n\\nSe "
-"guardar agora, todas as outras categorias não mostradas serão eliminadas. "
+"Existem actualmente várias categorias guardadas na base de dados.\n"
+"\n"
+"Se guardar agora, todas as outras categorias não mostradas serão eliminadas. "
 "Continuar?"
 
 #: tintcal.php:827
