@@ -83,7 +83,7 @@ msgstr "Recarregar dados de feriados"
 
 #: tintcal.php:113
 msgid "まずは「カテゴリ追加・編集」でカテゴリを登録してください。"
-msgstr "Por favor, registre uma categoria em "Adicionar/Editar Categorias" primeiro."
+msgstr "Por favor, registre uma categoria em \"Adicionar/Editar Categorias\" primeiro."
 
 #: tintcal.php:116
 msgid "ファイルを選択してください。"

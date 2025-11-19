@@ -82,7 +82,7 @@ msgstr "Reload holiday data"
 
 #: tintcal.php:113
 msgid "まずは「カテゴリ追加・編集」でカテゴリを登録してください。"
-msgstr "Please register a category in "Add/Edit Categories" first."
+msgstr "Please register a category in \"Add/Edit Categories\" first."
 
 #: tintcal.php:116
 msgid "ファイルを選択してください。"

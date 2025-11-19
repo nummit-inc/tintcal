@@ -81,7 +81,7 @@ msgstr "重新加载节假日数据"
 
 #: tintcal.php:113
 msgid "まずは「カテゴリ追加・編集」でカテゴリを登録してください。"
-msgstr "请先在"添加/编辑分类"中注册分类。"
+msgstr "请先在\"添加/编辑分类\"中注册分类。"
 
 #: tintcal.php:116
 msgid "ファイルを選択してください。"
@@ -181,7 +181,7 @@ msgid ""
 "カテゴリ「%s」を削除してもよろしいですか？\n"
 "この操作は取り消せません。"
 msgstr ""
-"确定要删除分类"%s"吗？\n"
+"确定要删除分类\"%s\"吗？\n"
 "此操作无法撤销。"
 
 #: tintcal.php:142
@@ -262,7 +262,7 @@ msgstr "分类别名重复。"
 
 #: tintcal.php:772
 msgid "（サーバー判定）カテゴリ名「%s」が重複しています。"
-msgstr "（服务器验证）分类名称"%s"重复。"
+msgstr "（服务器验证）分类名称\"%s\"重复。"
 
 #: tintcal.php:798
 msgid ""
@@ -504,7 +504,7 @@ msgstr "星期标题背景色"
 
 #: includes/meta-box-tintcal.php:94
 msgid "※カラーの変更は「カテゴリ・日付入力」ページの共通設定から行えます。"
-msgstr "* 可以在"分类和日期输入"页面的通用设置中更改颜色。"
+msgstr "* 可以在\"分类和日期输入\"页面的通用设置中更改颜色。"
 
 #: includes/meta-box-tintcal.php:98
 msgid "日本の祝日を表示"
@@ -544,7 +544,7 @@ msgstr "显示分类图例"
 
 #: includes/meta-box-tintcal.php:131
 msgid "「今月に戻る」ボタンを表示"
-msgstr "显示"返回本月"按钮"
+msgstr "显示\"返回本月\"按钮"
 
 #: includes/meta-box-tintcal.php:137
 msgid "表示するカテゴリ"
@@ -552,7 +552,7 @@ msgstr "要显示的分类"
 
 #: includes/meta-box-tintcal.php:142
 msgid "「カテゴリ・日付入力」で先にカテゴリを作成してください。"
-msgstr "请先在"分类和日期输入"中创建分类。"
+msgstr "请先在\"分类和日期输入\"中创建分类。"
 
 #: includes/meta-box-tintcal.php:155
 msgid "このカレンダーで表示したいカテゴリだけにチェックを入れてください。"
@@ -562,7 +562,7 @@ msgstr "仅勾选您想在此日历中显示的分类。"
 msgid ""
 "「カテゴリ・日付入力」で割り当てた日付のうち、ここでチェックされたカテゴリの"
 "みが表示されます。"
-msgstr "仅显示在"分类和日期输入"中分配的日期中勾选的分类。"
+msgstr "仅显示在\"分类和日期输入\"中分配的日期中勾选的分类。"
 
 #: includes/admin-menu-tintcal.php:37
 msgid "カテゴリ・日付入力"
@@ -684,11 +684,11 @@ msgstr "在日历下方显示图例"
 
 #: includes/preference-view-tintcal.php
 msgid "「今月に戻る」ボタン"
-msgstr ""返回本月"按钮"
+msgstr "\"返回本月\"按钮"
 
 #: includes/preference-view-tintcal.php
 msgid "カレンダーに「今月に戻る」ボタンを表示する"
-msgstr "在日历中显示"返回本月"按钮"
+msgstr "在日历中显示\"返回本月\"按钮"
 
 #: includes/preference-view-tintcal.php
 msgid "基本設定を保存"
