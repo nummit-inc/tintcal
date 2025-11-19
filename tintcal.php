@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 Plugin Name:      TintCal
 Plugin URI:       https://tintcal.com
 Description:      Create simple event calendars with color-coded schedules and built-in Japanese holiday support.
-Version:          2.2.4
+Version:          2.2.5
 Requires at least: 5.8
 Requires PHP:     7.4
 Author:           QuantaLumina
