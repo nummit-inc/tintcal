@@ -35,7 +35,17 @@ add_filter('all_plugins', 'tintcal_localize_plugin_description');
 define('TINTCAL_VERSION', '2.2.4');
 define('TINTCAL_FREE_MAX_CATEGORIES', 1); // Free version supports only 1 category
 
-
+/**
+ * Load plugin textdomain for translations.
+ */
+function tintcal_load_textdomain() {
+	load_plugin_textdomain(
+		'tintcal',
+		false,
+		dirname( plugin_basename( __FILE__ ) ) . '/languages'
+	);
+}
+add_action( 'init', 'tintcal_load_textdomain' );
 
 $tintcal_includes_path = plugin_dir_path(__FILE__) . 'includes/';
 
