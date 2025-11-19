@@ -1,4 +1,4 @@
-# English translation for TintCal.
+# British English translation for TintCal.
 # Copyright (C) 2025 QuantaLumina
 # This file is distributed under the GPL v2 or later.
 msgid ""
@@ -8,8 +8,8 @@ msgstr ""
 "POT-Creation-Date: 2025-01-16 00:00+0000\n"
 "PO-Revision-Date: 2025-01-16 00:00+0000\n"
 "Last-Translator: Claude AI\n"
-"Language-Team: English\n"
-"Language: en_US\n"
+"Language-Team: British English\n"
+"Language: en_GB\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -65,7 +65,7 @@ msgstr "Ajax communication error"
 #: tintcal.php:104
 msgid "祝日データの取得中に問題が発生しました。再読み込みしてください。"
 msgstr ""
-"There was a problem while loading holiday data. Please reload the page."
+"There was a problem whilst loading holiday data. Please reload the page."
 
 #: tintcal.php:106
 msgctxt "month and year heading"
@@ -82,7 +82,7 @@ msgstr "Reload holiday data"
 
 #: tintcal.php:113
 msgid "まずは「カテゴリ追加・編集」でカテゴリを登録してください。"
-msgstr "Please register a category in “Add/Edit Categories” first."
+msgstr "Please register a category in \"Add/Edit Categories\" first."
 
 #: tintcal.php:116
 msgid "ファイルを選択してください。"
@@ -138,7 +138,7 @@ msgstr "Failed to reload holiday data."
 
 #: tintcal.php:129
 msgid "祝日再取得中にエラーが発生しました。"
-msgstr "An error occurred while reloading holidays."
+msgstr "An error occurred whilst reloading holidays."
 
 #: tintcal.php:130
 msgid "保存"
@@ -166,7 +166,7 @@ msgstr "Category Name"
 
 #: tintcal.php:137
 msgid "色コード"
-msgstr "Color code"
+msgstr "Colour code"
 
 #: tintcal.php:138 includes/meta-box-tintcal.php:127
 #: includes/meta-box-tintcal.php:133 includes/preference-view-tintcal.php:118
@@ -373,7 +373,7 @@ msgstr "No calendars found"
 
 #: includes/post-type-tintcal.php:16
 msgid "ゴミ箱にカレンダーは見つかりませんでした"
-msgstr "No calendars found in Trash"
+msgstr "No calendars found in Bin"
 
 #: includes/post-type-tintcal.php:86
 msgid "プレビューカレンダー"
@@ -389,7 +389,7 @@ msgid ""
 "をご利用いただけますが、%1$sTintCal Pro%2$sにアップグレードすると、さらに高度"
 "で便利な機能が解放されます。"
 msgstr ""
-"Thank you for using TintCal. While the free version provides basic calendar "
+"Thank you for using TintCal. Whilst the free version provides basic calendar "
 "functionality, upgrading to %1$sTintCal Pro%2$s unlocks advanced and "
 "convenient features."
 
@@ -423,15 +423,15 @@ msgstr "Unlimited"
 
 #: includes/pro-view-tintcal.php:29
 msgid "カラーカスタマイズ"
-msgstr "Color Customization"
+msgstr "Colour Customisation"
 
 #: includes/pro-view-tintcal.php:30
 msgid "共通設定でカレンダーの色を変更可能"
-msgstr "Change calendar colors in common settings"
+msgstr "Change calendar colours in common settings"
 
 #: includes/pro-view-tintcal.php:31
 msgid "個別カレンダーごとに、すべての色を自由に変更可能"
-msgstr "Freely change all colors for each individual calendar"
+msgstr "Freely change all colours for each individual calendar"
 
 #: includes/pro-view-tintcal.php:34
 msgid "ロール権限設定"
@@ -511,12 +511,12 @@ msgstr "Monday"
 
 #: includes/meta-box-tintcal.php:91
 msgid "曜日ヘッダーの背景色"
-msgstr "Weekday Header Background Color"
+msgstr "Weekday Header Background Colour"
 
 #: includes/meta-box-tintcal.php:94
 msgid "※カラーの変更は「カテゴリ・日付入力」ページの共通設定から行えます。"
 msgstr ""
-"* Color changes can be made in the common settings on the \"Category & Date "
+"* Colour changes can be made in the common settings on the \"Category & Date "
 "Input\" page."
 
 #: includes/meta-box-tintcal.php:98
@@ -529,27 +529,27 @@ msgstr "Display"
 
 #: includes/meta-box-tintcal.php:105
 msgid "曜日ヘッダーの色付け"
-msgstr "Weekday Header Coloring"
+msgstr "Weekday Header Colouring"
 
 #: includes/meta-box-tintcal.php:107
 msgid "週末の曜日ヘッダーを色付けする"
-msgstr "Color weekend headers"
+msgstr "Colour weekend headers"
 
 #: includes/meta-box-tintcal.php:111
 msgid "日曜カラー"
-msgstr "Sunday Color"
+msgstr "Sunday Colour"
 
 #: includes/meta-box-tintcal.php:113
 msgid "日曜を色付け"
-msgstr "Color Sundays"
+msgstr "Colour Sundays"
 
 #: includes/meta-box-tintcal.php:118
 msgid "土曜カラー"
-msgstr "Saturday Color"
+msgstr "Saturday Colour"
 
 #: includes/meta-box-tintcal.php:120
 msgid "土曜を色付け"
-msgstr "Color Saturdays"
+msgstr "Colour Saturdays"
 
 #: includes/meta-box-tintcal.php:125
 msgid "カテゴリ凡例を表示"
@@ -645,7 +645,7 @@ msgid "文化の日"
 msgstr "Culture Day"
 
 msgid "勤労感謝の日"
-msgstr "Labor Thanksgiving Day"
+msgstr "Labour Thanksgiving Day"
 
 msgid "振替休日"
 msgstr "Substitute Holiday"
@@ -675,19 +675,19 @@ msgstr "Show holidays"
 
 #: includes/preference-view-tintcal.php
 msgid "土日の色"
-msgstr "Weekend Colors"
+msgstr "Weekend Colours"
 
 #: includes/preference-view-tintcal.php
 msgid "曜日ヘッダーを色付けする"
-msgstr "Color weekday headers"
+msgstr "Colour weekday headers"
 
 #: includes/preference-view-tintcal.php
 msgid "日付セルの日曜を色付け"
-msgstr "Color Sunday cells"
+msgstr "Colour Sunday cells"
 
 #: includes/preference-view-tintcal.php
 msgid "日付セルの土曜を色付け"
-msgstr "Color Saturday cells"
+msgstr "Colour Saturday cells"
 
 #: includes/preference-view-tintcal.php
 msgid "カテゴリ凡例"
@@ -717,7 +717,7 @@ msgstr "Settings Demo"
 msgid "実際の日付やカテゴリは反映されません。色のイメージを確認できます。"
 msgstr ""
 "Actual dates and categories are not reflected. Use this to preview the "
-"colors."
+"colours."
 
 #: includes/preference-view-tintcal.php
 msgid "凡例の表示イメージ"
@@ -767,5 +767,5 @@ msgid ""
 "け。日本の祝日にも対応した、見た目がわかりやすいオリジナルカレンダーを作成で"
 "きます。"
 msgstr ""
-"Create custom schedules with color-coded days and easy-to-read Japanese "
+"Create custom schedules with colour-coded days and easy-to-read Japanese "
 "holiday support."

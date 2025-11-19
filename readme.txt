@@ -4,7 +4,7 @@ Tags: calendar, events, schedule, holiday, business hours
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 2.2.4
+Stable tag: 2.2.5
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,11 @@ Clear browser, server, and plugin caches, and purge your CDN if you use one. Con
 4.  The base settings screen.
 
 == Changelog ==
+
+= 2.2.5 =
+*   Enhancement: Added full translation coverage for 11 additional locales with updated `.po/.mo` files.
+*   Fix: Corrected translation strings with unescaped quotes in localized admin text.
+*   Fix: Resolved issues where Simplified Chinese translations could not be compiled due to syntax errors.
 
 = 2.2.4 =
 *   Enhancement: Added full internationalization support via `load_plugin_textdomain()` and localized JavaScript strings.

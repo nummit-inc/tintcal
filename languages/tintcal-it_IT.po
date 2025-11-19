@@ -1,4 +1,4 @@
-# English translation for TintCal.
+# Italian translation for TintCal.
 # Copyright (C) 2025 QuantaLumina
 # This file is distributed under the GPL v2 or later.
 msgid ""
@@ -8,8 +8,8 @@ msgstr ""
 "POT-Creation-Date: 2025-01-16 00:00+0000\n"
 "PO-Revision-Date: 2025-01-16 00:00+0000\n"
 "Last-Translator: Claude AI\n"
-"Language-Team: English\n"
-"Language: en_US\n"
+"Language-Team: Italian\n"
+"Language: it_IT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -18,54 +18,55 @@ msgstr ""
 #: tintcal.php:52
 msgctxt "short weekday Sunday"
 msgid "日"
-msgstr "Sun"
+msgstr "Dom"
 
 #: tintcal.php:53
 msgctxt "short weekday Monday"
 msgid "月"
-msgstr "Mon"
+msgstr "Lun"
 
 #: tintcal.php:54
 msgctxt "short weekday Tuesday"
 msgid "火"
-msgstr "Tue"
+msgstr "Mar"
 
 #: tintcal.php:55
 msgctxt "short weekday Wednesday"
 msgid "水"
-msgstr "Wed"
+msgstr "Mer"
 
 #: tintcal.php:56
 msgctxt "short weekday Thursday"
 msgid "木"
-msgstr "Thu"
+msgstr "Gio"
 
 #: tintcal.php:57
 msgctxt "short weekday Friday"
 msgid "金"
-msgstr "Fri"
+msgstr "Ven"
 
 #: tintcal.php:58
 msgctxt "short weekday Saturday"
 msgid "土"
-msgstr "Sat"
+msgstr "Sab"
 
 #: tintcal.php:101
 msgid "予期しない応答"
-msgstr "Unexpected response"
+msgstr "Risposta imprevista"
 
 #: tintcal.php:102
 msgid "祝日データの保存に失敗しました。"
-msgstr "Failed to save holiday data."
+msgstr "Impossibile salvare i dati delle festività."
 
 #: tintcal.php:103
 msgid "Ajax通信エラー"
-msgstr "Ajax communication error"
+msgstr "Errore di comunicazione Ajax"
 
 #: tintcal.php:104
 msgid "祝日データの取得中に問題が発生しました。再読み込みしてください。"
 msgstr ""
-"There was a problem while loading holiday data. Please reload the page."
+"Si è verificato un problema durante il caricamento dei dati delle festività. "
+"Ricaricare la pagina."
 
 #: tintcal.php:106
 msgctxt "month and year heading"
@@ -74,200 +75,204 @@ msgstr "%2$s/%1$s"
 
 #: tintcal.php:111
 msgid "取得中..."
-msgstr "Loading..."
+msgstr "Caricamento..."
 
 #: tintcal.php:112
 msgid "祝日データを再取得"
-msgstr "Reload holiday data"
+msgstr "Ricarica dati festività"
 
 #: tintcal.php:113
 msgid "まずは「カテゴリ追加・編集」でカテゴリを登録してください。"
-msgstr "Please register a category in “Add/Edit Categories” first."
+msgstr ""
+"Registrare prima una categoria in \"Aggiungi/Modifica categorie\"."
 
 #: tintcal.php:116
 msgid "ファイルを選択してください。"
-msgstr "Please select a file."
+msgstr "Selezionare un file."
 
 #: tintcal.php:117
 msgid "保存しました"
-msgstr "Saved."
+msgstr "Salvato."
 
 #: tintcal.php:118
 msgid "保存に失敗しました。"
-msgstr "Failed to save."
+msgstr "Salvataggio fallito."
 
 #: tintcal.php:119
 msgid "すべてのカレンダー日付割当を初期化します。よろしいですか？"
-msgstr "This will reset all calendar date assignments. Continue?"
+msgstr ""
+"Questo ripristinerà tutte le assegnazioni di date del calendario. Continuare?"
 
 #: tintcal.php:120
 msgid "日付の割当を初期化しました"
-msgstr "Date assignments have been reset."
+msgstr "Le assegnazioni di date sono state ripristinate."
 
 #: tintcal.php:121
 msgid "初期化に失敗しました。"
-msgstr "Failed to reset."
+msgstr "Ripristino fallito."
 
 #: tintcal.php:122
 msgid "初期化中にエラーが発生しました。"
-msgstr "An error occurred during reset."
+msgstr "Si è verificato un errore durante il ripristino."
 
 #: tintcal.php:123
 msgid "この操作は元に戻せません。本当に全データを初期化しますか？"
-msgstr "This action cannot be undone. Are you sure you want to reset all data?"
+msgstr ""
+"Questa azione non può essere annullata. Sei sicuro di voler ripristinare "
+"tutti i dati?"
 
 #: tintcal.php:124
 msgid "全データを初期化しました"
-msgstr "All data has been reset."
+msgstr "Tutti i dati sono stati ripristinati."
 
 #: tintcal.php:125
 msgid "祝日データの更新が完了しました。"
-msgstr "<strong>Holiday data update completed.</strong>"
+msgstr "<strong>Aggiornamento dati festività completato.</strong>"
 
 #: tintcal.php:126
 msgid "✅ %1$s年: 更新しました。"
-msgstr "✅ %1$s: Updated."
+msgstr "✅ %1$s: Aggiornato."
 
 #: tintcal.php:127
 msgid "❌ %1$s年: 失敗しました (%2$s)"
-msgstr "❌ %1$s: Failed (%2$s)"
+msgstr "❌ %1$s: Fallito (%2$s)"
 
 #: tintcal.php:128
 msgid "祝日データの再取得に失敗しました。"
-msgstr "Failed to reload holiday data."
+msgstr "Impossibile ricaricare i dati delle festività."
 
 #: tintcal.php:129
 msgid "祝日再取得中にエラーが発生しました。"
-msgstr "An error occurred while reloading holidays."
+msgstr "Si è verificato un errore durante il ricaricamento delle festività."
 
 #: tintcal.php:130
 msgid "保存"
-msgstr "Save"
+msgstr "Salva"
 
 #: tintcal.php:131
 msgid "保存中..."
-msgstr "Saving..."
+msgstr "Salvataggio..."
 
 #: tintcal.php:132
 msgid "キャンセル"
-msgstr "Cancel"
+msgstr "Annulla"
 
 #: tintcal.php:133
 msgid "編集"
-msgstr "Edit"
+msgstr "Modifica"
 
 #: tintcal.php:134
 msgid "削除"
-msgstr "Delete"
+msgstr "Elimina"
 
 #: tintcal.php:136
 msgid "カテゴリ名"
-msgstr "Category Name"
+msgstr "Nome categoria"
 
 #: tintcal.php:137
 msgid "色コード"
-msgstr "Color code"
+msgstr "Codice colore"
 
 #: tintcal.php:138 includes/meta-box-tintcal.php:127
 #: includes/meta-box-tintcal.php:133 includes/preference-view-tintcal.php:118
 msgid "表示"
-msgstr "Show"
+msgstr "Mostra"
 
 #: tintcal.php:139
 msgid "操作"
-msgstr "Actions"
+msgstr "Azioni"
 
 #: tintcal.php:141
 msgid ""
 "カテゴリ「%s」を削除してもよろしいですか？\n"
 "この操作は取り消せません。"
 msgstr ""
-"Are you sure you want to delete category \"%s\"?\n"
-"This action cannot be undone."
+"Sei sicuro di voler eliminare la categoria \"%s\"?\n"
+"Questa azione non può essere annullata."
 
 #: tintcal.php:142
 msgid "カテゴリ名は空にできません"
-msgstr "Category name cannot be empty."
+msgstr "Il nome della categoria non può essere vuoto."
 
 #: tintcal.php:143
 msgid "すでに同じ名前のカテゴリが存在します。"
-msgstr "A category with the same name already exists."
+msgstr "Esiste già una categoria con lo stesso nome."
 
 #: tintcal.php:144
 msgid "無料版は1カテゴリのみです"
-msgstr "The free version supports only one category."
+msgstr "La versione gratuita supporta solo una categoria."
 
 #: tintcal.php:145
 msgid ""
 "無料版は1カテゴリのみです。既存カテゴリを編集するか、削除後に新規追加してくだ"
 "さい。"
 msgstr ""
-"The free version supports one category only. Edit the existing category or "
-"delete it before adding another."
+"La versione gratuita supporta solo una categoria. Modificare la categoria "
+"esistente o eliminarla prima di aggiungerne una nuova."
 
 #: tintcal.php:146
 msgid "カテゴリ名（1件のみ）"
-msgstr "Category name (single entry)"
+msgstr "Nome categoria (solo una voce)"
 
 #: tintcal.php:147
 msgid ""
 "無料版は1カテゴリのみです。既存カテゴリを削除してから新規追加するか、編集ボタ"
 "ンで既存カテゴリを変更してください。"
 msgstr ""
-"The free version supports one category only. Delete the existing category or "
-"edit it before adding a new one."
+"La versione gratuita supporta solo una categoria. Eliminare la categoria "
+"esistente o modificarla prima di aggiungerne una nuova."
 
 #: tintcal.php:148
 msgid "カテゴリ名を入力してください"
-msgstr "Enter a category name."
+msgstr "Inserire un nome categoria."
 
 #: tintcal.php:149
 msgid "通信エラーが発生しました"
-msgstr "A network error occurred."
+msgstr "Si è verificato un errore di rete."
 
 #: tintcal.php:103 tintcal.php:124 tintcal.php:277
 msgid "設定を保存しました。"
-msgstr "Settings saved successfully."
+msgstr "Impostazioni salvate con successo."
 
 #: tintcal.php:110
 msgid "カテゴリと日付データをインポートしました。"
-msgstr "Categories and date data have been imported."
+msgstr "Categorie e dati data sono stati importati."
 
 #: tintcal.php:117
 msgid "インポートファイルの形式が不正です。"
-msgstr "Invalid import file format."
+msgstr "Formato file di importazione non valido."
 
 #: tintcal.php:137
 msgid "権限がありません。"
-msgstr "You do not have permission."
+msgstr "Non hai i permessi."
 
 #: tintcal.php:241 tintcal.php:1043 tintcal.php:1074
 msgid "このページにアクセスする権限がありません。"
-msgstr "You do not have permission to access this page."
+msgstr "Non hai i permessi per accedere a questa pagina."
 
 #: tintcal.php:687 tintcal.php:1349
 msgid "＜ 前の月"
-msgstr "< Previous"
+msgstr "< Precedente"
 
 #: tintcal.php:689 tintcal.php:1358
 msgid "次の月 ＞"
-msgstr "Next >"
+msgstr "Successivo >"
 
 #: tintcal.php:718
 msgid "この操作を行う権限がありません。"
-msgstr "You do not have permission to perform this action."
+msgstr "Non hai i permessi per eseguire questa azione."
 
 #: tintcal.php:735
 msgid "不正なデータ形式"
-msgstr "Invalid data format"
+msgstr "Formato dati non valido"
 
 #: tintcal.php:762
 msgid "カテゴリスラグが重複しています。"
-msgstr "Category slug is duplicated."
+msgstr "Lo slug della categoria è duplicato."
 
 #: tintcal.php:772
 msgid "（サーバー判定）カテゴリ名「%s」が重複しています。"
-msgstr "(Server validation) Category name \"%s\" is duplicated."
+msgstr "(Validazione server) Il nome categoria \"%s\" è duplicato."
 
 #: tintcal.php:798
 msgid ""
@@ -276,112 +281,111 @@ msgid ""
 "このまま保存すると、表示されていない他のカテゴリが全て削除されますが、よろし"
 "いですか？"
 msgstr ""
-"Multiple categories are currently saved in the database.\n"
-"\n"
-"If you save now, all other categories not shown will be deleted. Continue?"
+"Attualmente sono salvate più categorie nel database.\\n\\nSe salvi ora, "
+"tutte le altre categorie non visualizzate saranno eliminate. Continuare?"
 
 #: tintcal.php:827
 msgid ""
 "このプラグインは1つのカテゴリのみをサポートしています。2つ目以降は保存されま"
 "せん。"
 msgstr ""
-"This plugin supports only 1 category. Additional categories will not be "
-"saved."
+"Questo plugin supporta solo una categoria. Le categorie aggiuntive non "
+"saranno salvate."
 
 #: tintcal.php:875
 msgid "無効な年です"
-msgstr "Invalid year"
+msgstr "Anno non valido"
 
 #: tintcal.php:901 tintcal.php:1025
 msgid "ファイルの書き込みに失敗しました"
-msgstr "Failed to write file"
+msgstr "Impossibile scrivere il file"
 
 #: tintcal.php:956
 msgid "祝日再取得完了"
-msgstr "Holidays reloaded successfully"
+msgstr "Festività ricaricate con successo"
 
 #: tintcal.php:967
 msgid "日付割り当てデータを初期化しました"
-msgstr "Date assignment data has been reset"
+msgstr "I dati di assegnazione date sono stati ripristinati"
 
 #: tintcal.php:977
 msgid "カテゴリと日付割当データをすべて初期化しました"
-msgstr "All categories and date assignment data have been reset"
+msgstr "Tutte le categorie e i dati di assegnazione date sono stati ripristinati"
 
 #: tintcal.php:1004
 msgid "APIへの接続に失敗しました"
-msgstr "Failed to connect to API"
+msgstr "Impossibile connettersi all'API"
 
 #: tintcal.php:1013
 msgid "取得したJSONデータが不正です"
-msgstr "Retrieved JSON data is invalid"
+msgstr "I dati JSON recuperati non sono validi"
 
 #: tintcal.php:1349
 msgid "前の月へ"
-msgstr "Go to previous month"
+msgstr "Vai al mese precedente"
 
 #: tintcal.php:1354
 msgid "今月に戻る"
-msgstr "Back to current month"
+msgstr "Torna al mese corrente"
 
 #: tintcal.php:1358
 msgid "次の月へ"
-msgstr "Go to next month"
+msgstr "Vai al mese successivo"
 
 #: tintcal.php:1361 includes/post-type-tintcal.php:8
 #: includes/post-type-tintcal.php:19
 msgid "カレンダー"
-msgstr "Calendar"
+msgstr "Calendario"
 
 #: includes/shortcode-frontend-tintcal.php:19
 msgid "[tintcal] エラー: 有効なカレンダーIDが指定されていません。"
-msgstr "[tintcal] Error: Valid calendar ID not specified."
+msgstr "[tintcal] Errore: ID calendario valido non specificato."
 
 #: includes/post-type-tintcal.php:7 includes/post-type-tintcal.php:17
 #: includes/post-type-tintcal.php:18 includes/admin-menu-tintcal.php:17
 #: includes/admin-menu-tintcal.php:46
 msgid "カレンダー一覧"
-msgstr "Calendars"
+msgstr "Calendari"
 
 #: includes/post-type-tintcal.php:9
 msgid "新規追加"
-msgstr "Add New"
+msgstr "Aggiungi nuovo"
 
 #: includes/post-type-tintcal.php:10
 msgid "カレンダーを新規追加"
-msgstr "Add New Calendar"
+msgstr "Aggiungi nuovo calendario"
 
 #: includes/post-type-tintcal.php:11
 msgid "カレンダーを編集"
-msgstr "Edit Calendar"
+msgstr "Modifica calendario"
 
 #: includes/post-type-tintcal.php:12
 msgid "新規カレンダー"
-msgstr "New Calendar"
+msgstr "Nuovo calendario"
 
 #: includes/post-type-tintcal.php:13
 msgid "カレンダーを見る"
-msgstr "View Calendar"
+msgstr "Visualizza calendario"
 
 #: includes/post-type-tintcal.php:14
 msgid "カレンダーを検索"
-msgstr "Search Calendars"
+msgstr "Cerca calendari"
 
 #: includes/post-type-tintcal.php:15
 msgid "カレンダーが見つかりませんでした"
-msgstr "No calendars found"
+msgstr "Nessun calendario trovato"
 
 #: includes/post-type-tintcal.php:16
 msgid "ゴミ箱にカレンダーは見つかりませんでした"
-msgstr "No calendars found in Trash"
+msgstr "Nessun calendario trovato nel cestino"
 
 #: includes/post-type-tintcal.php:86
 msgid "プレビューカレンダー"
-msgstr "Preview Calendar"
+msgstr "Anteprima calendario"
 
 #: includes/pro-view-tintcal.php:3
 msgid "TintCal Proで、さらに多くの可能性を"
-msgstr "Unlock More Possibilities with TintCal Pro"
+msgstr "Scopri più possibilità con TintCal Pro"
 
 #: includes/pro-view-tintcal.php:7
 msgid ""
@@ -389,97 +393,97 @@ msgid ""
 "をご利用いただけますが、%1$sTintCal Pro%2$sにアップグレードすると、さらに高度"
 "で便利な機能が解放されます。"
 msgstr ""
-"Thank you for using TintCal. While the free version provides basic calendar "
-"functionality, upgrading to %1$sTintCal Pro%2$s unlocks advanced and "
-"convenient features."
+"Grazie per aver usato TintCal. Mentre la versione gratuita offre funzionalità "
+"di calendario di base, l'aggiornamento a %1$sTintCal Pro%2$s sblocca funzionalità "
+"avanzate e pratiche."
 
 #: includes/pro-view-tintcal.php:13
 msgid "Pro版の主な機能"
-msgstr "Main Pro Features"
+msgstr "Principali funzionalità Pro"
 
 #: includes/pro-view-tintcal.php:17
 msgid "機能"
-msgstr "Feature"
+msgstr "Funzionalità"
 
 #: includes/pro-view-tintcal.php:18
 msgid "通常版"
-msgstr "Free Version"
+msgstr "Versione gratuita"
 
 #: includes/pro-view-tintcal.php:19
 msgid "Pro版"
-msgstr "Pro Version"
+msgstr "Versione Pro"
 
 #: includes/pro-view-tintcal.php:24
 msgid "カテゴリ作成数"
-msgstr "Number of Categories"
+msgstr "Numero di categorie"
 
 #: includes/pro-view-tintcal.php:25
 msgid "1つまで"
-msgstr "Up to 1"
+msgstr "Fino a 1"
 
 #: includes/pro-view-tintcal.php:26
 msgid "無制限"
-msgstr "Unlimited"
+msgstr "Illimitate"
 
 #: includes/pro-view-tintcal.php:29
 msgid "カラーカスタマイズ"
-msgstr "Color Customization"
+msgstr "Personalizzazione colore"
 
 #: includes/pro-view-tintcal.php:30
 msgid "共通設定でカレンダーの色を変更可能"
-msgstr "Change calendar colors in common settings"
+msgstr "Modificare i colori del calendario nelle impostazioni comuni"
 
 #: includes/pro-view-tintcal.php:31
 msgid "個別カレンダーごとに、すべての色を自由に変更可能"
-msgstr "Freely change all colors for each individual calendar"
+msgstr "Modificare liberamente tutti i colori per ogni singolo calendario"
 
 #: includes/pro-view-tintcal.php:34
 msgid "ロール権限設定"
-msgstr "Role & Permissions"
+msgstr "Ruoli e permessi"
 
 #: includes/pro-view-tintcal.php:35
 msgid "利用不可"
-msgstr "Not available"
+msgstr "Non disponibile"
 
 #: includes/pro-view-tintcal.php:36
 msgid "編集者などの権限グループごとに操作を制限"
-msgstr "Restrict operations by user role groups such as editors"
+msgstr "Limitare le operazioni in base ai gruppi di ruoli utente come gli editor"
 
 #: includes/pro-view-tintcal.php:39
 msgid "データ管理"
-msgstr "Data Management"
+msgstr "Gestione dati"
 
 #: includes/pro-view-tintcal.php:41
 msgid "設定のエクスポート/インポート、データリセット"
-msgstr "Export/import settings, data reset"
+msgstr "Esportare/importare impostazioni, ripristinare dati"
 
 #: includes/pro-view-tintcal.php:44
 msgid "優先サポート"
-msgstr "Priority Support"
+msgstr "Supporto prioritario"
 
 #: includes/pro-view-tintcal.php:45
 msgid "WordPress.orgフォーラム"
-msgstr "WordPress.org forums"
+msgstr "Forum WordPress.org"
 
 #: includes/pro-view-tintcal.php:46
 msgid "メールによる優先サポート"
-msgstr "Priority email support"
+msgstr "Supporto prioritario via email"
 
 #: includes/pro-view-tintcal.php:54
 msgid "TintCal Proの詳細を見てみる"
-msgstr "View TintCal Pro Details"
+msgstr "Visualizza dettagli di TintCal Pro"
 
 #: includes/pro-view-tintcal.php:57
 msgid ""
 "ウェブサイトの運営をさらに効率的で豊かにするために、ぜひPro版の導入をご検討く"
 "ださい。"
 msgstr ""
-"Please consider upgrading to Pro to make your website management more "
-"efficient and feature-rich."
+"Si prega di considerare l'aggiornamento a Pro per rendere la gestione del "
+"sito più efficiente e ricca di funzionalità."
 
 #: includes/list-view-tintcal.php:6
 msgid "カレンダー名"
-msgstr "Calendar Name"
+msgstr "Nome calendario"
 
 #: includes/list-view-tintcal.php:7
 msgid "ショートコード"
@@ -487,279 +491,282 @@ msgstr "Shortcode"
 
 #: includes/list-view-tintcal.php:8
 msgid "カテゴリ数"
-msgstr "Categories"
+msgstr "Categorie"
 
 #: includes/list-view-tintcal.php:9
 msgid "日付"
-msgstr "Date"
+msgstr "Data"
 
 #: includes/meta-box-tintcal.php:13
 msgid "カレンダー設定"
-msgstr "Calendar Settings"
+msgstr "Impostazioni calendario"
 
 #: includes/meta-box-tintcal.php:84
 msgid "週の開始曜日"
-msgstr "Week Starts On"
+msgstr "La settimana inizia di"
 
 #: includes/meta-box-tintcal.php:86
 msgid "日曜日"
-msgstr "Sunday"
+msgstr "Domenica"
 
 #: includes/meta-box-tintcal.php:87
 msgid "月曜日"
-msgstr "Monday"
+msgstr "Lunedì"
 
 #: includes/meta-box-tintcal.php:91
 msgid "曜日ヘッダーの背景色"
-msgstr "Weekday Header Background Color"
+msgstr "Colore di sfondo intestazione giorni settimana"
 
 #: includes/meta-box-tintcal.php:94
 msgid "※カラーの変更は「カテゴリ・日付入力」ページの共通設定から行えます。"
 msgstr ""
-"* Color changes can be made in the common settings on the \"Category & Date "
-"Input\" page."
+"* Le modifiche ai colori possono essere effettuate nelle impostazioni comuni "
+"nella pagina \"Categoria e inserimento data\"."
 
 #: includes/meta-box-tintcal.php:98
 msgid "日本の祝日を表示"
-msgstr "Display Japanese Holidays"
+msgstr "Visualizza festività giapponesi"
 
 #: includes/meta-box-tintcal.php:100
 msgid "表示する"
-msgstr "Display"
+msgstr "Visualizza"
 
 #: includes/meta-box-tintcal.php:105
 msgid "曜日ヘッダーの色付け"
-msgstr "Weekday Header Coloring"
+msgstr "Colorazione intestazione giorni settimana"
 
 #: includes/meta-box-tintcal.php:107
 msgid "週末の曜日ヘッダーを色付けする"
-msgstr "Color weekend headers"
+msgstr "Colorare le intestazioni del fine settimana"
 
 #: includes/meta-box-tintcal.php:111
 msgid "日曜カラー"
-msgstr "Sunday Color"
+msgstr "Colore domenica"
 
 #: includes/meta-box-tintcal.php:113
 msgid "日曜を色付け"
-msgstr "Color Sundays"
+msgstr "Colorare le domeniche"
 
 #: includes/meta-box-tintcal.php:118
 msgid "土曜カラー"
-msgstr "Saturday Color"
+msgstr "Colore sabato"
 
 #: includes/meta-box-tintcal.php:120
 msgid "土曜を色付け"
-msgstr "Color Saturdays"
+msgstr "Colorare i sabati"
 
 #: includes/meta-box-tintcal.php:125
 msgid "カテゴリ凡例を表示"
-msgstr "Display Category Legend"
+msgstr "Visualizza legenda categorie"
 
 #: includes/meta-box-tintcal.php:131
 msgid "「今月に戻る」ボタンを表示"
-msgstr "Display \"Back to Current Month\" Button"
+msgstr "Visualizza pulsante \"Torna al mese corrente\""
 
 #: includes/meta-box-tintcal.php:137
 msgid "表示するカテゴリ"
-msgstr "Categories to Display"
+msgstr "Categorie da visualizzare"
 
 #: includes/meta-box-tintcal.php:142
 msgid "「カテゴリ・日付入力」で先にカテゴリを作成してください。"
-msgstr "Please create categories first in \"Category & Date Input\"."
+msgstr ""
+"Creare prima le categorie in \"Categoria e inserimento data\"."
 
 #: includes/meta-box-tintcal.php:155
 msgid "このカレンダーで表示したいカテゴリだけにチェックを入れてください。"
-msgstr "Check only the categories you want to display on this calendar."
+msgstr ""
+"Selezionare solo le categorie che si desidera visualizzare in questo "
+"calendario."
 
 #: includes/meta-box-tintcal.php:156
 msgid ""
 "「カテゴリ・日付入力」で割り当てた日付のうち、ここでチェックされたカテゴリの"
 "みが表示されます。"
 msgstr ""
-"Only categories checked here will be displayed from the dates assigned in "
-"\"Category & Date Input\"."
+"Solo le categorie selezionate qui saranno visualizzate tra le date assegnate "
+"in \"Categoria e inserimento data\"."
 
 #: includes/admin-menu-tintcal.php:37
 msgid "カテゴリ・日付入力"
-msgstr "Category & Date Input"
+msgstr "Categoria e inserimento data"
 
 #: includes/admin-menu-tintcal.php:51
 msgid "新規カレンダー追加"
-msgstr "Add New Calendar"
+msgstr "Aggiungi nuovo calendario"
 
 #: includes/admin-menu-tintcal.php:60 includes/admin-menu-tintcal.php:61
 msgid "TintCal Proのご案内"
-msgstr "About TintCal Pro"
+msgstr "Informazioni su TintCal Pro"
 
 #: includes/admin-menu-tintcal.php:82
 msgid "一括管理設定"
-msgstr "Bulk Management Settings"
+msgstr "Impostazioni gestione in blocco"
 
 # Japanese Holiday Names
 msgid "元日"
-msgstr "New Year's Day"
+msgstr "Capodanno"
 
 msgid "成人の日"
-msgstr "Coming of Age Day"
+msgstr "Giorno della maggiore età"
 
 msgid "建国記念の日"
-msgstr "National Foundation Day"
+msgstr "Giorno della fondazione nazionale"
 
 msgid "天皇誕生日"
-msgstr "Emperor's Birthday"
+msgstr "Compleanno dell'imperatore"
 
 msgid "春分の日"
-msgstr "Vernal Equinox Day"
+msgstr "Equinozio di primavera"
 
 msgid "昭和の日"
-msgstr "Showa Day"
+msgstr "Giorno Shōwa"
 
 msgid "憲法記念日"
-msgstr "Constitution Memorial Day"
+msgstr "Giorno della Costituzione"
 
 msgid "みどりの日"
-msgstr "Greenery Day"
+msgstr "Giorno del verde"
 
 msgid "こどもの日"
-msgstr "Children's Day"
+msgstr "Giorno dei bambini"
 
 msgid "海の日"
-msgstr "Marine Day"
+msgstr "Giorno del mare"
 
 msgid "山の日"
-msgstr "Mountain Day"
+msgstr "Giorno della montagna"
 
 msgid "敬老の日"
-msgstr "Respect for the Aged Day"
+msgstr "Giorno del rispetto per gli anziani"
 
 msgid "秋分の日"
-msgstr "Autumnal Equinox Day"
+msgstr "Equinozio d'autunno"
 
 msgid "スポーツの日"
-msgstr "Sports Day"
+msgstr "Giorno dello sport"
 
 msgid "体育の日"
-msgstr "Health and Sports Day"
+msgstr "Giorno della salute e dello sport"
 
 msgid "文化の日"
-msgstr "Culture Day"
+msgstr "Giorno della cultura"
 
 msgid "勤労感謝の日"
-msgstr "Labor Thanksgiving Day"
+msgstr "Giorno del ringraziamento per il lavoro"
 
 msgid "振替休日"
-msgstr "Substitute Holiday"
+msgstr "Giorno festivo sostitutivo"
 
 msgid "国民の休日"
-msgstr "National Holiday"
+msgstr "Festa nazionale"
 
 #: includes/preference-view-tintcal.php
 msgid "TintCal 設定"
-msgstr "TintCal Settings"
+msgstr "Impostazioni TintCal"
 
 #: includes/preference-view-tintcal.php
 msgid "基本設定"
-msgstr "Base Settings"
+msgstr "Impostazioni di base"
 
 #: includes/preference-view-tintcal.php
 msgid "カテゴリ・日付設定"
-msgstr "Category & Date Settings"
+msgstr "Impostazioni categoria e data"
 
 #: includes/preference-view-tintcal.php
 msgid "日本の祝日"
-msgstr "Japanese Holidays"
+msgstr "Festività giapponesi"
 
 #: includes/preference-view-tintcal.php
 msgid "祝日を表示する"
-msgstr "Show holidays"
+msgstr "Visualizzare festività"
 
 #: includes/preference-view-tintcal.php
 msgid "土日の色"
-msgstr "Weekend Colors"
+msgstr "Colori fine settimana"
 
 #: includes/preference-view-tintcal.php
 msgid "曜日ヘッダーを色付けする"
-msgstr "Color weekday headers"
+msgstr "Colorare le intestazioni dei giorni settimana"
 
 #: includes/preference-view-tintcal.php
 msgid "日付セルの日曜を色付け"
-msgstr "Color Sunday cells"
+msgstr "Colorare le celle domenica"
 
 #: includes/preference-view-tintcal.php
 msgid "日付セルの土曜を色付け"
-msgstr "Color Saturday cells"
+msgstr "Colorare le celle sabato"
 
 #: includes/preference-view-tintcal.php
 msgid "カテゴリ凡例"
-msgstr "Category Legend"
+msgstr "Legenda categorie"
 
 #: includes/preference-view-tintcal.php
 msgid "カレンダー下に凡例を表示する"
-msgstr "Display legend below the calendar"
+msgstr "Visualizzare la legenda sotto il calendario"
 
 #: includes/preference-view-tintcal.php
 msgid "「今月に戻る」ボタン"
-msgstr "\"Back to Current Month\" Button"
+msgstr "Pulsante \"Torna al mese corrente\""
 
 #: includes/preference-view-tintcal.php
 msgid "カレンダーに「今月に戻る」ボタンを表示する"
-msgstr "Display the \"Back to Current Month\" button on the calendar"
+msgstr "Visualizzare il pulsante \"Torna al mese corrente\" nel calendario"
 
 #: includes/preference-view-tintcal.php
 msgid "基本設定を保存"
-msgstr "Save Base Settings"
+msgstr "Salva impostazioni di base"
 
 #: includes/preference-view-tintcal.php
 msgid "設定デモ"
-msgstr "Settings Demo"
+msgstr "Demo impostazioni"
 
 #: includes/preference-view-tintcal.php
 msgid "実際の日付やカテゴリは反映されません。色のイメージを確認できます。"
 msgstr ""
-"Actual dates and categories are not reflected. Use this to preview the "
-"colors."
+"Le date e categorie effettive non sono riflesse. Utilizzare per visualizzare "
+"l'anteprima dei colori."
 
 #: includes/preference-view-tintcal.php
 msgid "凡例の表示イメージ"
-msgstr "Legend preview"
+msgstr "Anteprima legenda"
 
 #: includes/preference-view-tintcal.php
 msgid "カテゴリ例"
-msgstr "Sample category"
+msgstr "Categoria di esempio"
 
 #: includes/preference-view-tintcal.php
 msgid "実際の日付をクリックして、カテゴリの割り当てができます。"
-msgstr "Click actual dates to assign categories."
+msgstr "Fare clic sulle date effettive per assegnare le categorie."
 
 #: includes/preference-view-tintcal.php
 msgid "カテゴリ追加・編集"
-msgstr "Add / Edit Categories"
+msgstr "Aggiungi / Modifica categorie"
 
 #: includes/preference-view-tintcal.php
 msgid ""
 "このプラグインは%1$s単一カテゴリのみ%2$sに対応しています。2件目以降のカテゴリ"
 "は保存対象になりません。"
 msgstr ""
-"This plugin supports %1$sa single category only%2$s. Additional categories "
-"cannot be saved."
+"Questo plugin supporta %1$ssolo una singola categoria%2$s. Le categorie "
+"aggiuntive non possono essere salvate."
 
 #: includes/preference-view-tintcal.php
 msgid "個別カレンダーの編集"
-msgstr "Edit Individual Calendars"
+msgstr "Modifica calendari individuali"
 
 #: includes/preference-view-tintcal.php
 msgid ""
 "各カレンダーに固有の設定（表示するカテゴリの選択など）を行うには、以下の一覧"
 "から編集画面へ移動してください。"
 msgstr ""
-"To configure per-calendar settings (e.g., visible categories), open the "
-"editor from the list below."
+"Per configurare le impostazioni specifiche del calendario (ad es. categorie "
+"visibili), aprire l'editor dall'elenco seguente."
 
 msgid "%s (Substitute Holiday)"
-msgstr "%s (Substitute Holiday)"
+msgstr "%s (Giorno festivo sostitutivo)"
 
 msgid "Substitute Holiday"
-msgstr "Substitute Holiday"
+msgstr "Giorno festivo sostitutivo"
 
 #: tintcal.php
 msgid ""
@@ -767,5 +774,5 @@ msgid ""
 "け。日本の祝日にも対応した、見た目がわかりやすいオリジナルカレンダーを作成で"
 "きます。"
 msgstr ""
-"Create custom schedules with color-coded days and easy-to-read Japanese "
-"holiday support."
+"Creare calendari personalizzati con giorni codificati a colori e supporto "
+"chiaro per le festività giapponesi."
