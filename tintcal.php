@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 Plugin Name:      TintCal
 Plugin URI:       https://tintcal.com
 Description:      Create simple event calendars with color-coded schedules and built-in Japanese holiday support.
-Version:          2.2.5
+Version:          2.2.6
 Requires at least: 5.8
 Requires PHP:     7.4
 Author:           QuantaLumina
@@ -32,20 +32,12 @@ function tintcal_localize_plugin_description($plugins) {
 }
 add_filter('all_plugins', 'tintcal_localize_plugin_description');
 
-define('TINTCAL_VERSION', '2.2.4');
+define('TINTCAL_VERSION', '2.2.6');
 define('TINTCAL_FREE_MAX_CATEGORIES', 1); // Free version supports only 1 category
 
-/**
- * Load plugin textdomain for translations.
- */
-function tintcal_load_textdomain() {
-	load_plugin_textdomain(
-		'tintcal',
-		false,
-		dirname( plugin_basename( __FILE__ ) ) . '/languages'
-	);
-}
-add_action( 'init', 'tintcal_load_textdomain' );
+// WordPress 4.6+ automatically loads translations from this plugin's /languages
+// and from wp-content/languages/plugins/, so manual load_plugin_textdomain() is
+// intentionally omitted to avoid Plugin Check warnings.
 
 $tintcal_includes_path = plugin_dir_path(__FILE__) . 'includes/';
 

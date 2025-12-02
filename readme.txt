@@ -2,9 +2,9 @@
 Contributors: nummit7310
 Tags: calendar, events, schedule, holiday, business hours
 Requires at least: 5.8
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.2.5
+Stable tag: 2.2.6
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,7 +44,7 @@ For basic questions, please use the official support forums on WordPress.org.
 Temporarily disable cache/optimization plugins (JS/CSS minification, lazy loading) and any CDN. If the issue persists, switch to a default theme (e.g., Twenty Twenty-Five) to check for theme/plugin conflicts. Please include exact reproduction steps.
 
 = The update installed but nothing changed =
-Clear browser, server, and plugin caches, and purge your CDN if you use one. Confirm the Plugins screen shows "Version: 2.2.3".
+Clear browser, server, and plugin caches, and purge your CDN if you use one. Confirm the Plugins screen shows "Version: 2.2.6".
 
 = What information should I include in a bug report? =
 - WordPress and PHP versions (e.g., WP 6.6 / PHP 8.1)
@@ -61,6 +61,10 @@ Clear browser, server, and plugin caches, and purge your CDN if you use one. Con
 4.  The base settings screen.
 
 == Changelog ==
+
+= 2.2.6 =
+*   Compatibility: Confirmed WordPress 6.9 support and updated "Tested up to".
+*   Maintenance: Synced plugin header and internal version constant to 2.2.6.
 
 = 2.2.5 =
 *   Enhancement: Added full translation coverage for 11 additional locales with updated `.po/.mo` files.
