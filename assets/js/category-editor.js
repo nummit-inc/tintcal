@@ -102,6 +102,15 @@
   // =============================
   // カテゴリテーブル描画・UI系関数
   // =============================
+  function escapeHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   function renderCategoryTable() {
     let categories = Array.isArray(window.tintcalPluginData?.categories)
       ? window.tintcalPluginData.categories
@@ -125,18 +134,23 @@
         const row = document.createElement("tr");
         const isVisible = cat.visible !== false;
 
+        // XSS対策: 値はすべてHTMLエスケープし、色は16進数のみ許可する
+        const safeName = escapeHtml(cat.name);
+        const safeSlug = escapeHtml(cat.slug);
+        const safeColor = /^#[0-9a-fA-F]{6}$/.test(String(cat.color)) ? cat.color : "#000000";
+
         row.innerHTML = `
-          <td><span class="cat-name">${cat.name}<\/span>
-            <input class="edit-name-input" type="text" value="${cat.name}" style="display:none;"><\/td>
-          <td><div class="cat-color" style="width: 40px; height: 20px; background:${cat.color || "#000000"}"><\/div>
-            <input class="edit-color-input" type="color" value="${cat.color || "#000000"}" style="display:none;"><\/td>
+          <td><span class="cat-name">${safeName}<\/span>
+            <input class="edit-name-input" type="text" value="${safeName}" style="display:none;"><\/td>
+          <td><div class="cat-color" style="width: 40px; height: 20px; background:${safeColor}"><\/div>
+            <input class="edit-color-input" type="color" value="${safeColor}" style="display:none;"><\/td>
           <td>
-            <input type="checkbox" class="toggle-visibility" data-slug="${cat.slug}" ${isVisible ? 'checked' : ''}>
+            <input type="checkbox" class="toggle-visibility" data-slug="${safeSlug}" ${isVisible ? 'checked' : ''}>
           <\/td>
           <td>
-            <button data-slug="${cat.slug}" class="edit-category">${I18N.edit}<\/button>
-            <button data-slug="${cat.slug}" class="save-category" style="display:none;">${I18N.saveLabel || I18N.save || DEFAULT_I18N.saveLabel}<\/button>
-            <button data-slug="${cat.slug}" class="delete-category">${I18N.delete}<\/button>
+            <button data-slug="${safeSlug}" class="edit-category">${I18N.edit}<\/button>
+            <button data-slug="${safeSlug}" class="save-category" style="display:none;">${I18N.saveLabel || I18N.save || DEFAULT_I18N.saveLabel}<\/button>
+            <button data-slug="${safeSlug}" class="delete-category">${I18N.delete}<\/button>
           <\/td>
         `;
         categoryTable.appendChild(row);

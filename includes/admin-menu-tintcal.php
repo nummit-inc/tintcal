@@ -4,8 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 add_action('admin_menu', function () {
 
     // ▼▼▼ 先に、各メニューへのアクセス権限をチェックする ▼▼▼
-    $can_see_common_settings = current_user_can('edit_posts'); // 権限チェックを簡素化
-    $can_see_calendars = current_user_can('edit_posts');
+    $can_see_common_settings = current_user_can('edit_others_posts'); // 権限チェックを簡素化
+    $can_see_calendars = current_user_can('edit_others_posts');
 
     // ▼▼▼ アクセスできるサブメニューが一つもない場合は、何もせず処理を終了 ▼▼▼
     if (!$can_see_common_settings && !$can_see_calendars) {
@@ -16,7 +16,7 @@ add_action('admin_menu', function () {
   add_menu_page(
     esc_html__( 'カレンダー一覧', 'tintcal' ),
     'TintCal',
-    'edit_posts',
+    'edit_others_posts',
     'tintcal-dashboard',
     'tintcal_dashboard_redirect',
     'dashicons-calendar-alt',
@@ -35,7 +35,7 @@ add_action('admin_menu', function () {
         global $tintcal_preference_hook;
         $tintcal_preference_hook = add_submenu_page(
             'tintcal-dashboard', esc_html__( 'カテゴリ・日付入力', 'tintcal' ), esc_html__( 'カテゴリ・日付入力', 'tintcal' ),
-            'edit_posts',
+            'edit_others_posts',
             'tintcal-preference', 'tintcal_render_preference_page'
         );
     }
@@ -44,25 +44,15 @@ add_action('admin_menu', function () {
     if ($can_see_calendars) { // ← 事前チェックした変数を使用
         add_submenu_page(
             'tintcal-dashboard', esc_html__( 'カレンダー一覧', 'tintcal' ), esc_html__( 'カレンダー一覧', 'tintcal' ),
-            'edit_posts',
+            'edit_others_posts',
             'edit.php?post_type=tintcal'
         );
         add_submenu_page(
             'tintcal-dashboard', esc_html__( '新規カレンダー追加', 'tintcal' ), esc_html__( '新規カレンダー追加', 'tintcal' ),
-            'edit_posts',
+            'edit_others_posts',
             'post-new.php?post_type=tintcal'
         );
     }
-
-    // Pro版案内ページ
-    add_submenu_page(
-        'tintcal-dashboard',
-        esc_html__( 'TintCal Proのご案内', 'tintcal' ),
-        esc_html__( 'TintCal Proのご案内', 'tintcal' ),
-        'edit_posts',
-        'tintcal-pro',
-        'tintcal_render_pro_page'
-    );
 
   // add_menu_page で自動生成される最初のサブメニューを削除
   remove_submenu_page('tintcal-dashboard', 'tintcal-dashboard');
@@ -97,15 +87,5 @@ function tintcal_hide_preview_button() {
     if ($post_type === 'tintcal') {
         $css = '#preview-action { display: none !important; }';
         wp_add_inline_style('wp-admin', $css);
-    }
-}
-
-/**
- * Pro版案内ページのレンダリング
- */
-function tintcal_render_pro_page() {
-    $file = plugin_dir_path(__FILE__) . 'pro-view-tintcal.php';
-    if (file_exists($file)) {
-        include $file;
     }
 }

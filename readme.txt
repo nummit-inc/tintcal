@@ -4,7 +4,7 @@ Tags: calendar, events, schedule, holiday, business hours
 Requires at least: 5.8
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.2.6
+Stable tag: 2.2.7
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,14 @@ It eliminates the complexity and confusion often found in plugins made overseas,
 *   **Simple Settings:** Basic customizations, such as the calendar header and weekend colors, can be easily configured.
 *   **Holiday Display:** Automatically displays Japanese public holidays on the calendar.
 *   **Simple Category Management:** You can register one type of schedule as a category and color-code the calendar.
+
+== Important Notice ==
+
+**TintCal is no longer maintained and will be closed on WordPress.org.** Version 2.2.7 is the final release. It contains security fixes and a cleanup routine: when you delete the plugin from the Plugins screen, all TintCal data (calendars, settings, cached holiday files and custom capabilities) is removed from your site. If you want to keep your calendar data, use the export function on the TintCal settings page before deleting the plugin. The source code remains available on GitHub for anyone who wishes to fork it.
+
+== External services ==
+
+This plugin downloads Japanese public holiday data once a day from the public API at https://holidays-jp.github.io/ (hosted on GitHub Pages). Only the requested year is sent as part of the URL; no personal data is transmitted. See https://pages.github.com/ and https://docs.github.com/en/site-policy/github-terms/github-terms-of-service for the hosting provider's terms.
 
 == Installation ==
 
@@ -44,7 +52,7 @@ For basic questions, please use the official support forums on WordPress.org.
 Temporarily disable cache/optimization plugins (JS/CSS minification, lazy loading) and any CDN. If the issue persists, switch to a default theme (e.g., Twenty Twenty-Five) to check for theme/plugin conflicts. Please include exact reproduction steps.
 
 = The update installed but nothing changed =
-Clear browser, server, and plugin caches, and purge your CDN if you use one. Confirm the Plugins screen shows "Version: 2.2.6".
+Clear browser, server, and plugin caches, and purge your CDN if you use one. Confirm the Plugins screen shows "Version: 2.2.7".
 
 = What information should I include in a bug report? =
 - WordPress and PHP versions (e.g., WP 6.6 / PHP 8.1)
@@ -61,6 +69,14 @@ Clear browser, server, and plugin caches, and purge your CDN if you use one. Con
 4.  The base settings screen.
 
 == Changelog ==
+
+= 2.2.7 =
+*   Final release. The plugin is no longer maintained.
+*   Security: Imported calendar data is now sanitized, and category names and colors are no longer inserted into the page as raw HTML (stored XSS).
+*   Security: The holiday locale parameter is validated (path traversal), and server file paths are no longer returned.
+*   Security: Plugin settings, import/export and data reset now require the "edit others posts" capability instead of "edit posts".
+*   Removed: The Pro information page and all links to the discontinued tintcal.com website.
+*   Added: uninstall.php removes all plugin data when the plugin is deleted.
 
 = 2.2.6 =
 *   Compatibility: Confirmed WordPress 6.9 support and updated "Tested up to".

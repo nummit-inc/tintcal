@@ -2,13 +2,12 @@
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 /*
 Plugin Name:      TintCal
-Plugin URI:       https://tintcal.com
+Plugin URI:       https://wordpress.org/plugins/tintcal/
 Description:      Create simple event calendars with color-coded schedules and built-in Japanese holiday support.
-Version:          2.2.6
+Version:          2.2.7
 Requires at least: 5.8
 Requires PHP:     7.4
 Author:           QuantaLumina
-Author URI:       https://nummit.jp
 License:          GPL v2 or later
 License URI:      https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain:      tintcal
@@ -32,7 +31,7 @@ function tintcal_localize_plugin_description($plugins) {
 }
 add_filter('all_plugins', 'tintcal_localize_plugin_description');
 
-define('TINTCAL_VERSION', '2.2.6');
+define('TINTCAL_VERSION', '2.2.7');
 define('TINTCAL_FREE_MAX_CATEGORIES', 1); // Free version supports only 1 category
 
 // WordPress 4.6+ automatically loads translations from this plugin's /languages
@@ -411,7 +410,7 @@ function tintcal_get_displayable_categories() {
 function tintcal_render_preference_page() {
     
     // 権限チェックを修正
-    if ( ! current_user_can('edit_posts') ) {
+    if ( ! current_user_can('edit_others_posts') ) {
         wp_die( esc_html__( 'このページにアクセスする権限がありません。', 'tintcal' ) );
     }
 
@@ -895,7 +894,7 @@ function tintcal_display_calendar() {
 function tintcal_ajax_security_check() {
   check_ajax_referer('tintcal_settings_nonce');
   
-  if (!current_user_can('edit_posts')) {
+  if (!current_user_can('edit_others_posts')) {
     wp_send_json_error(['message' => esc_html__( 'この操作を行う権限がありません。', 'tintcal' )]);
   }
 }
@@ -1055,6 +1054,11 @@ add_action('wp_ajax_save_tintcal_holidays', function () {
   if (!preg_match('/^\d{4}$/', $year)) {
     wp_send_json_error(['message' => esc_html__( '無効な年です', 'tintcal' )]);
   }
+
+  // パストラバーサル対策: ロケールは「ja」「en_US」形式のみ許可する
+  if (!preg_match('/^[a-z]{2,3}(_[A-Z]{2})?$/', $locale)) {
+    wp_send_json_error(['message' => esc_html__( '無効なロケールです', 'tintcal' )]);
+  }
   
   $decoded_data = json_decode(stripslashes($data), true);
   if (!is_array($decoded_data)) {
@@ -1077,7 +1081,7 @@ add_action('wp_ajax_save_tintcal_holidays', function () {
 
   $write_result = tintcal_write_file($file_path, $json);
   if ($write_result) {
-      wp_send_json_success(['saved' => true, 'file' => $file_path]);
+      wp_send_json_success(['saved' => true]); // サーバー内の絶対パスは返さない
   } else {
       wp_send_json_error(['message' => esc_html__('ファイルの書き込みに失敗しました', 'tintcal')]);
   }
@@ -1222,7 +1226,7 @@ function tintcal_update_holiday_files($return_results = false) {
 add_action('admin_init', function() {
   // --- エクスポート処理 ---
   if (isset($_POST['tintcal_export'])) {
-    if (!current_user_can('edit_posts')) {
+    if (!current_user_can('edit_others_posts')) {
       wp_die( esc_html__( 'このページにアクセスする権限がありません。', 'tintcal' ) );
     }
     check_admin_referer('tintcal_settings_nonce');
@@ -1253,7 +1257,7 @@ add_action('admin_init', function() {
 
   
   if (isset($_POST['tintcal_import']) && isset($_FILES['tintcal_import_file'])) {
-    if (!current_user_can('edit_posts')) {
+    if (!current_user_can('edit_others_posts')) {
       wp_die( esc_html__( 'このページにアクセスする権限がありません。', 'tintcal' ) );
     }
     check_admin_referer('tintcal_settings_nonce');
@@ -1293,8 +1297,41 @@ add_action('admin_init', function() {
         exit;
       }
     }
-    $newCategories = $data['categories'];
-    
+    // --- インポートデータのサニタイズ（保存型XSS対策） ---
+    // インポートされたJSONは信頼できないため、既知のフィールドのみを許可リスト方式で再構築する
+    $newCategories = [];
+    foreach ($data['categories'] as $raw_cat) {
+      if (!is_array($raw_cat)) {
+        continue;
+      }
+      $color = isset($raw_cat['color']) && is_string($raw_cat['color']) ? sanitize_hex_color($raw_cat['color']) : '';
+      $newCategories[] = [
+        'id'      => isset($raw_cat['id']) ? absint($raw_cat['id']) : 0,
+        'name'    => isset($raw_cat['name']) && is_string($raw_cat['name']) ? sanitize_text_field($raw_cat['name']) : '',
+        'color'   => $color ? $color : '#dddddd',
+        'slug'    => isset($raw_cat['slug']) && is_string($raw_cat['slug']) ? sanitize_key($raw_cat['slug']) : '',
+        'visible' => isset($raw_cat['visible']) ? (bool) $raw_cat['visible'] : true,
+        'order'   => isset($raw_cat['order']) ? absint($raw_cat['order']) : 0,
+      ];
+    }
+    $sanitized_assignments = [];
+    foreach ($data['assignments'] as $raw_date => $raw_slugs) {
+      $clean_date = sanitize_text_field((string) $raw_date);
+      if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $clean_date)) {
+        continue;
+      }
+      $raw_slugs = is_array($raw_slugs) ? $raw_slugs : [$raw_slugs];
+      $clean_slugs = [];
+      foreach ($raw_slugs as $raw_slug) {
+        if (is_string($raw_slug)) {
+          $clean_slugs[] = sanitize_key($raw_slug);
+        }
+      }
+      $sanitized_assignments[$clean_date] = $clean_slugs;
+    }
+    $data['assignments'] = $sanitized_assignments;
+    unset($data['assigned_dates']);
+
     // --- スラグ正規化・重複排除 ---
     $currentCategories = get_option('tintcal_categories', []);
     $slugMap = []; // 古い slug → 新しい slug を記録するマップ

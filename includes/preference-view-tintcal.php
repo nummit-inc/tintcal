@@ -133,7 +133,7 @@
 
 <?php
 // --- 【条件分岐①】カレンダー管理権限がある場合のみ、このセクションを表示 ---
-if (current_user_can('edit_posts')) :
+if (current_user_can('edit_others_posts')) :
     // --- 存在するカレンダーのリストを取得 ---
     $tintcal_calendars = get_posts([
         'post_type'      => 'tintcal',

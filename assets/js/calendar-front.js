@@ -307,7 +307,14 @@ class TintCal {
             item.style.marginRight = '15px';
             item.style.marginBottom = '5px';
             // 色チップの見た目もインラインスタイルで完全に指定
-            item.innerHTML = `<span style="display:inline-block;width:12px;height:12px;background-color:${cat.color};margin-right:5px;border:1px solid #ccc;border-radius:3px;"></span><span>${cat.name}</span>`;
+            // XSS対策: innerHTMLを使わず、DOM APIとtextContentで組み立てる
+            const chip = document.createElement('span');
+            chip.style.cssText = 'display:inline-block;width:12px;height:12px;margin-right:5px;border:1px solid #ccc;border-radius:3px;';
+            chip.style.backgroundColor = /^#[0-9a-fA-F]{3,8}$/.test(String(cat.color)) ? cat.color : '#dddddd';
+            const label = document.createElement('span');
+            label.textContent = String(cat.name == null ? '' : cat.name);
+            item.appendChild(chip);
+            item.appendChild(label);
             this.legendContainer.appendChild(item);
         });
     }

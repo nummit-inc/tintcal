@@ -530,7 +530,12 @@ function renderLegend() {
     const item = document.createElement("div");
     item.style.display = "inline-block";
     item.style.marginRight = "10px";
-    item.innerHTML = `<span style="display:inline-block;width:12px;height:12px;background:${cat.color};margin-right:4px;border:1px solid #ccc;"></span>${cat.name}`;
+    // XSS対策: innerHTMLを使わず、DOM APIとtextContentで組み立てる
+    const chip = document.createElement("span");
+    chip.style.cssText = "display:inline-block;width:12px;height:12px;margin-right:4px;border:1px solid #ccc;";
+    chip.style.background = /^#[0-9a-fA-F]{3,8}$/.test(String(cat.color)) ? cat.color : "#dddddd";
+    item.appendChild(chip);
+    item.appendChild(document.createTextNode(String(cat.name == null ? "" : cat.name)));
     container.appendChild(item);
   });
 }
